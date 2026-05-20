@@ -4,7 +4,11 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { v4: uuidv4 } = require('uuid');
-require('dotenv').config();
+try {
+  require('dotenv').config();
+} catch (e) {
+  console.log('⚠️  .env no encontrado, usando valores por defecto');
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
