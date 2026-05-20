@@ -205,7 +205,7 @@ app.post('/api/generar-documentos', async (req, res) => {
         ruta: `/outputs/${nombreFinal}`,
         nombre: nombreFinal,
         tamaño_bytes: zipStats.size,
-        descargar: `GET /descargar/${nombreFinal}`
+descargar: `GET /descargar/${nombreFinal}`
       },
       timestamp: new Date().toISOString(),
       mensaje: `✅ Kit PLD generado y guardado exitosamente en carpeta local`
