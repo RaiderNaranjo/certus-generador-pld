@@ -4,11 +4,14 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const crypto = require('crypto');
+const { google } = require('googleapis');
+
 const uuidv4 = () => crypto.randomUUID();
+
 try {
   require('dotenv').config();
 } catch (e) {
-  console.log('⚠️  .env no encontrado, usando valores por defecto');
+  console.log('⚠️ .env no encontrado, usando valores por defecto');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -17,6 +20,7 @@ try {
 const app = express();
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
+const DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
 
 // Middleware
 app.use(cors());
@@ -27,12 +31,70 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 const TEMP_DIR = path.join(__dirname, '.temp');
 const OUTPUT_DIR = path.join(__dirname, 'outputs');
 
-// Crear directorios si no existen
 [TEMP_DIR, OUTPUT_DIR].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GOOGLE DRIVE CLIENT
+// ─────────────────────────────────────────────────────────────────────────────
+function getDriveClient() {
+  const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
+  const auth = new google.auth.GoogleAuth({
+    credentials: serviceAccount,
+    scopes: ['https://www.googleapis.com/auth/drive.file']
+  });
+  return google.drive({ version: 'v3', auth });
+}
+
+async function subirADrive(zipPath, nombreArchivo) {
+  const drive = getDriveClient();
+
+  console.log(`  ☁️  Subiendo a Google Drive: ${nombreArchivo}`);
+
+  const response = await drive.files.create({
+    requestBody: {
+      name: nombreArchivo,
+      parents: [DRIVE_FOLDER_ID],
+    },
+    media: {
+      mimeType: 'application/zip',
+      body: fs.createReadStream(zipPath),
+    },
+    fields: 'id, name, webContentLink, webViewLink'
+  });
+
+  const fileId = response.data.id;
+
+  // Hacer el archivo público para descarga directa
+  await drive.permissions.create({
+    fileId: fileId,
+    requestBody: {
+      role: 'reader',
+      type: 'anyone'
+    }
+  });
+
+  // Obtener link de descarga directa
+  const fileData = await drive.files.get({
+    fileId: fileId,
+    fields: 'id, name, webContentLink, webViewLink'
+  });
+
+  const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+
+  console.log(`  ✅ Subido exitosamente a Drive`);
+  console.log(`  🔗 Link: ${downloadUrl}`);
+
+  return {
+    fileId,
+    nombre: fileData.data.name,
+    downloadUrl,
+    viewUrl: fileData.data.webViewLink
+  };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HEALTHCHECK
@@ -43,45 +105,42 @@ app.get('/health', (req, res) => {
     server: 'Certus PLD Automation',
     environment: NODE_ENV,
     timestamp: new Date().toISOString(),
-    uptime: Math.floor(process.uptime())
+    uptime: Math.floor(process.uptime()),
+    drive: DRIVE_FOLDER_ID ? 'configurado' : 'no configurado'
   });
 });
 
 app.get('/api/info', (req, res) => {
   res.json({
     nombre: 'Certus PLD — Servidor de Automatización',
-    versión: '2.2.0',
+    versión: '3.0.0',
     ambiente: NODE_ENV,
     endpoints: [
-      'GET  /health — Verificar estado',
-      'GET  /api/info — Esta información',
+      'GET /health — Verificar estado',
+      'GET /api/info — Esta información',
       'POST /api/generar-documentos — Generar kit personalizado'
     ],
-    generador: 'Integrado (generador.js)',
+    almacenamiento: 'Google Drive',
     documentos: '14 documentos personalizables (D0–D13)',
-    almacenamiento: 'Carpeta local (/outputs)',
     autor: 'José Luis Naranjo Bobadilla',
     contacto: 'contacto@certusconsultores.com.mx'
   });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ENDPOINT PRINCIPAL: GENERAR DOCUMENTOS Y GUARDAR LOCALMENTE
+// ENDPOINT PRINCIPAL: GENERAR DOCUMENTOS Y SUBIR A GOOGLE DRIVE
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/generar-documentos', async (req, res) => {
   const requestId = uuidv4().slice(0, 8);
   const timestamp = new Date().toISOString();
-  
+
   console.log(`\n${'═'.repeat(80)}`);
   console.log(`📨 [${requestId}] ${timestamp}`);
-  console.log(`   Solicitud recibida de ${req.ip}`);
 
   try {
-    // Extraer datos del payload
     const { cliente } = req.body;
-    
+
     if (!cliente) {
-      console.log(`❌ [${requestId}] Payload inválido: falta objeto 'cliente'`);
       return res.status(400).json({
         error: 'Payload inválido',
         message: 'Se requiere un objeto "cliente" con los datos',
@@ -97,20 +156,18 @@ app.post('/api/generar-documentos', async (req, res) => {
       Actividades = 'No especificadas',
       UMA = '117.31',
       RepresentantePLD = 'No asignado',
+      NombreRepresentanteLegal = 'No especificado',
       Email = 'cliente@empresa.com'
     } = cliente;
 
-    console.log(`\n   📋 Datos del cliente:`);
-    console.log(`      • Empresa: ${La_Empresa}`);
-    console.log(`      • RFC: ${RFC}`);
-    console.log(`      • Ciudad: ${Ciudad}`);
-    console.log(`      • Email: ${Email}`);
+    console.log(`\n  📋 Cliente: ${La_Empresa} (${RFC})`);
+    console.log(`  📧 Email: ${Email}`);
 
-    // Crear directorio temporal para este cliente
+    // Crear directorio temporal
     const clientDir = path.join(TEMP_DIR, `${RFC}_${requestId}`);
     fs.mkdirSync(clientDir, { recursive: true });
 
-    // Crear archivo cliente.json para el generador
+    // Crear cliente.json
     const datosCliente = {
       'La Empresa': La_Empresa,
       'RFC': RFC,
@@ -119,81 +176,72 @@ app.post('/api/generar-documentos', async (req, res) => {
       'Actividades': Actividades,
       'UMA': UMA,
       'RepresentantePLD': RepresentantePLD,
+      'NombreRepresentanteLegal': NombreRepresentanteLegal,
       'Email': Email
     };
 
-    const clientJsonPath = path.join(clientDir, 'cliente.json');
-    fs.writeFileSync(clientJsonPath, JSON.stringify(datosCliente, null, 2));
-    console.log(`\n   ✅ Archivo cliente.json creado`);
+    fs.writeFileSync(
+      path.join(clientDir, 'cliente.json'),
+      JSON.stringify(datosCliente, null, 2)
+    );
 
     // Ejecutar generador.js
-    console.log(`\n   ⚙️  Ejecutando generador de documentos...`);
-
-    const generarResult = await new Promise((resolve, reject) => {
+    console.log(`\n  ⚙️  Ejecutando generador...`);
+    await new Promise((resolve, reject) => {
       const proceso = spawn('node', [path.join(__dirname, 'generador.js')], {
         cwd: clientDir,
         stdio: ['pipe', 'pipe', 'pipe']
       });
 
-      let stdout = '';
-      let stderr = '';
+      proceso.stdout.on('data', d => console.log(`  ${d.toString().trim()}`));
+      proceso.stderr.on('data', d => console.log(`  ⚠️ ${d.toString().trim()}`));
 
-      proceso.stdout.on('data', (data) => {
-        stdout += data.toString();
-        console.log(`      ${data.toString().trim()}`);
+      proceso.on('close', code => {
+        if (code === 0) resolve();
+        else reject(new Error(`Generador salió con código ${code}`));
       });
 
-      proceso.stderr.on('data', (data) => {
-        stderr += data.toString();
-        console.log(`      ⚠️  ${data.toString().trim()}`);
-      });
-
-      proceso.on('close', (code) => {
-        if (code === 0) {
-          resolve({ success: true, stdout, stderr });
-        } else {
-          reject(new Error(`Generador salió con código ${code}: ${stderr}`));
-        }
-      });
-
-      proceso.on('error', (err) => {
-        reject(new Error(`Error ejecutando generador: ${err.message}`));
-      });
+      proceso.on('error', err => reject(new Error(`Error: ${err.message}`)));
     });
 
-    console.log(`\n   ✅ Documentos generados correctamente`);
-
-    // Buscar el ZIP generado
+    // Buscar ZIP generado
     const files = fs.readdirSync(clientDir);
     const zipFile = files.find(f => f.endsWith('.zip'));
 
-    if (!zipFile) {
-      throw new Error('No se generó archivo ZIP');
-    }
+    if (!zipFile) throw new Error('No se generó archivo ZIP');
 
     const zipPath = path.join(clientDir, zipFile);
     const zipStats = fs.statSync(zipPath);
+    const nombreFinal = `${RFC}_${La_Empresa.replace(/\s+/g, '_')}_${Date.now()}.zip`;
 
-    console.log(`\n   📦 ZIP generado localmente:`);
-    console.log(`      • Nombre: ${zipFile}`);
-    console.log(`      • Tamaño: ${(zipStats.size / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`\n  📦 ZIP: ${zipFile} (${(zipStats.size / 1024 / 1024).toFixed(2)} MB)`);
 
-    // ✅ GUARDAR EN CARPETA /outputs
-    const nombreFinal = `${RFC}_${La_Empresa.replace(/\s/g, '_')}_${Date.now()}.zip`;
-    const rutaFinal = path.join(OUTPUT_DIR, nombreFinal);
-    
-    console.log(`\n   💾 Guardando en carpeta local...`);
-    console.log(`      Ruta: /outputs/${nombreFinal}`);
+    // Subir a Google Drive
+    let driveInfo = null;
+    let downloadUrl = null;
 
-    fs.copyFileSync(zipPath, rutaFinal);
+    if (DRIVE_FOLDER_ID && process.env.GOOGLE_SERVICE_ACCOUNT) {
+      try {
+        driveInfo = await subirADrive(zipPath, nombreFinal);
+        downloadUrl = driveInfo.downloadUrl;
+      } catch (driveError) {
+        console.log(`  ⚠️ Error subiendo a Drive: ${driveError.message}`);
+        // Fallback: guardar localmente
+        const rutaFinal = path.join(OUTPUT_DIR, nombreFinal);
+        fs.copyFileSync(zipPath, rutaFinal);
+        downloadUrl = `/descargar/${nombreFinal}`;
+      }
+    } else {
+      // Sin Drive configurado: guardar localmente
+      const rutaFinal = path.join(OUTPUT_DIR, nombreFinal);
+      fs.copyFileSync(zipPath, rutaFinal);
+      downloadUrl = `/descargar/${nombreFinal}`;
+    }
 
-    console.log(`   ✅ Archivo guardado exitosamente`);
-    console.log(`      Tamaño: ${(zipStats.size / 1024 / 1024).toFixed(2)} MB`);
-
-    // Preparar respuesta
+    // Respuesta
     const respuesta = {
       success: true,
-      requestId: requestId,
+      requestId,
       cliente: {
         empresa: La_Empresa,
         rfc: RFC,
@@ -202,44 +250,39 @@ app.post('/api/generar-documentos', async (req, res) => {
       },
       documentos: {
         generados: 14,
-        tamaño_mb: (zipStats.size / 1024 / 1024).toFixed(2),
-        archivo_local: zipFile
+        tamaño_mb: parseFloat((zipStats.size / 1024 / 1024).toFixed(2)),
+        nombre: nombreFinal
       },
-      almacenamiento: {
+      almacenamiento: driveInfo ? {
+        tipo: 'Google Drive',
+        fileId: driveInfo.fileId,
+        nombre: driveInfo.nombre,
+        downloadUrl: driveInfo.downloadUrl,
+        viewUrl: driveInfo.viewUrl
+      } : {
         tipo: 'Carpeta local',
-        ruta: `/outputs/${nombreFinal}`,
-        nombre: nombreFinal,
-        tamaño_bytes: zipStats.size,
-descargar: `GET /descargar/${nombreFinal}`
+        downloadUrl
       },
+      downloadUrl,
       timestamp: new Date().toISOString(),
-      mensaje: `✅ Kit PLD generado y guardado exitosamente en carpeta local`
+      mensaje: `✅ Kit PLD generado y subido a Google Drive exitosamente`
     };
 
-    console.log(`\n   📊 Resumen:`);
-    console.log(`      • Estado: EXITOSO`);
-    console.log(`      • Documentos: ${respuesta.documentos.generados}`);
-    console.log(`      • Tamaño: ${respuesta.documentos.tamaño_mb} MB`);
-    console.log(`      • Ubicación: /outputs/${nombreFinal}`);
-    console.log(`\n   ✅ [${requestId}] Proceso completado`);
+    console.log(`\n  ✅ [${requestId}] Completado — Link: ${downloadUrl}`);
     console.log(`${'═'.repeat(80)}\n`);
 
     res.json(respuesta);
 
-    // Limpiar directorio temporal después de 30 segundos
+    // Limpiar temp después de 60 segundos
     setTimeout(() => {
       try {
         fs.rmSync(clientDir, { recursive: true, force: true });
-        console.log(`   🗑️  Directorio temporal ${clientDir} eliminado`);
-      } catch (e) {
-        console.log(`   ⚠️  No se pudo limpiar directorio: ${e.message}`);
-      }
-    }, 30000);
+      } catch (e) {}
+    }, 60000);
 
   } catch (error) {
-    console.log(`\n   ❌ [${requestId}] Error: ${error.message}`);
+    console.log(`\n  ❌ [${requestId}] Error: ${error.message}`);
     console.log(`${'═'.repeat(80)}\n`);
-
     res.status(500).json({
       error: 'Error al generar documentos',
       message: error.message,
@@ -249,99 +292,44 @@ descargar: `GET /descargar/${nombreFinal}`
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ENDPOINT: DESCARGAR ZIP
+// ENDPOINT DESCARGA LOCAL (fallback)
 // ─────────────────────────────────────────────────────────────────────────────
 app.get('/descargar/:archivo', (req, res) => {
   const nombreArchivo = req.params.archivo;
   const rutaArchivo = path.join(OUTPUT_DIR, nombreArchivo);
 
-  // Seguridad: validar que el archivo existe y está en /outputs
   if (!fs.existsSync(rutaArchivo) || !rutaArchivo.startsWith(OUTPUT_DIR)) {
-    console.log(`⚠️  Intento de acceso a archivo no válido: ${nombreArchivo}`);
     return res.status(404).json({ error: 'Archivo no encontrado' });
   }
 
-  console.log(`📥 Descargando: ${nombreArchivo}`);
   res.download(rutaArchivo);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ENDPOINT: LISTAR ARCHIVOS GENERADOS
-// ─────────────────────────────────────────────────────────────────────────────
-app.get('/api/archivos', (req, res) => {
-  try {
-    const archivos = fs.readdirSync(OUTPUT_DIR)
-      .filter(f => f.endsWith('.zip'))
-      .map(f => {
-        const stats = fs.statSync(path.join(OUTPUT_DIR, f));
-        return {
-          nombre: f,
-          tamaño_mb: (stats.size / 1024 / 1024).toFixed(2),
-          fecha: new Date(stats.mtimeMs).toISOString(),
-          descarga: `/descargar/${f}`
-        };
-      })
-      .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-
-    res.json({
-      total: archivos.length,
-      archivos: archivos
-    });
-  } catch (error) {
-    res.status(500).json({
-      error: 'Error listando archivos',
-      message: error.message
-    });
-  }
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 404 HANDLER
+// 404 + ERROR HANDLERS
 // ─────────────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
-  console.log(`⚠️  404: ${req.method} ${req.path}`);
-  res.status(404).json({
-    error: 'Ruta no encontrada',
-    path: req.path,
-    sugerencia: 'Ver GET /api/info para endpoints disponibles'
-  });
+  res.status(404).json({ error: 'Ruta no encontrada', path: req.path });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ERROR HANDLER
-// ─────────────────────────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
-  console.error(`❌ Error no manejado:`, err);
-  res.status(500).json({
-    error: 'Error interno del servidor',
-    message: NODE_ENV === 'development' ? err.message : 'Error desconocido'
-  });
+  console.error('❌ Error no manejado:', err);
+  res.status(500).json({ error: 'Error interno del servidor' });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// INICIAR SERVIDOR
+// INICIAR
 // ─────────────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`\n${'═'.repeat(80)}`);
-  console.log(`🚀 CERTUS PLD — SERVIDOR DE AUTOMATIZACIÓN v2.2`);
+  console.log(`🚀 CERTUS PLD — SERVIDOR v3.0 (Google Drive)`);
   console.log(`${'═'.repeat(80)}`);
   console.log(`📍 Puerto: ${PORT}`);
-  console.log(`🌍 Ambiente: ${NODE_ENV}`);
-  console.log(`⏰ Iniciado: ${new Date().toISOString()}`);
-  console.log(`\n📡 Endpoints disponibles:`);
-  console.log(`   • GET  http://localhost:${PORT}/health`);
-  console.log(`   • GET  http://localhost:${PORT}/api/info`);
-  console.log(`   • POST http://localhost:${PORT}/api/generar-documentos`);
-  console.log(`   • GET  http://localhost:${PORT}/api/archivos`);
-  console.log(`   • GET  http://localhost:${PORT}/descargar/:archivo`);
-  console.log(`\n💾 Almacenamiento: Carpeta local (/outputs)`);
-  console.log(`🔗 Generador: Integrado (generador.js v1.0)`);
-  console.log(`📄 Documentos: 14 (D0–D13) personalizables`);
+  console.log(`☁️  Drive Folder: ${DRIVE_FOLDER_ID || 'NO CONFIGURADO'}`);
   console.log(`${'═'.repeat(80)}\n`);
 });
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('\n⚠️  SIGTERM recibido. Cerrando servidor...');
+  console.log('\n⚠️ SIGTERM recibido. Cerrando servidor...');
   process.exit(0);
 });
