@@ -142,9 +142,13 @@ app.post('/api/generar-documentos', async (req, res) => {
       output.on('close', resolve);
     });
 
-    // Respuesta
+   // Respuesta
     const baseURL = process.env.BASE_URL || 'https://certus-generador-pld-production.up.railway.app';
     const downloadUrl = `${baseURL}/descargar/${nombreZip}`;
+
+    // Leer ZIP como base64
+    const zipBuffer = fs.readFileSync(zipPath);
+    const zipBase64 = zipBuffer.toString('base64');
 
     res.json({
       success: true,
@@ -160,9 +164,10 @@ app.post('/api/generar-documentos', async (req, res) => {
         total: documentos.length,
         nombre: nombreZip
       },
-      downloadUrl: downloadUrl
+      downloadUrl: downloadUrl,
+      zipBase64: zipBase64,
+      zipNombre: nombreZip
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
