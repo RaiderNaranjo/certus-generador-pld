@@ -147,7 +147,7 @@ app.post('/api/generar-documentos', async (req, res) => {
     const downloadUrl = `${baseURL}/descargar/${nombreZip}`;
 
     // Leer ZIP como base64
-    const zipBuffer = fs.readFileSync(zipPath);
+    const zipBuffer = fs.readFileSync(rutaZip);
     const zipBase64 = zipBuffer.toString('base64');
 
     res.json({
