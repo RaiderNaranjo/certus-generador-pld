@@ -258,27 +258,25 @@ async function main() {
     for (const [nombre, buffer] of Object.entries(docsPersonalizados)) {
       zipFinal.file(nombre, buffer);
     }
-// Agregar cronograma al ZIP
-zipFinal.file(nombreCronograma, fs.readFileSync(nombreCronograma));
-
-const zipBuffer = await zipFinal.generateAsync({ type: 'nodebuffer' });    
-    const zipBuffer = await zipFinal.generateAsync({ type: 'nodebuffer' });
-    const nombreZip = `CERTUS_PLD_${empresa.replace(/\s/g, '_')}_${Date.now()}.zip`;
-    
-    fs.writeFileSync(nombreZip, zipBuffer);
-    console.log(`✓ ZIP creado: ${nombreZip}`);
-    console.log(`  Tamaño: ${(zipBuffer.length / 1024 / 1024).toFixed(2)} MB\n`);
-    
-    // Generar cronograma
-    console.log(`📅 Generando cronograma...\n`);
+console.log(`\n📅 Generando cronograma...\n`);
     const cronograma = await generarCronograma(empresa, rfc);
     const nombreCronograma = `CRONOGRAMA_${empresa.replace(/\s/g, '_')}_${Date.now()}.txt`;
     fs.writeFileSync(nombreCronograma, cronograma, 'utf8');
     console.log(`✓ Cronograma creado: ${nombreCronograma}\n`);
-// Copiar cronograma txt a docx renombrado
-const nombreCronogramaDocx = nombreCronograma.replace('.txt', '.docx');
-fs.copyFileSync(nombreCronograma, nombreCronogramaDocx);
-console.log(`✓ También disponible como: ${nombreCronogramaDocx}\n`);
+
+    console.log(`\n📦 Comprimiendo documentos...\n`);
+    const zipFinal = new JSZip();
+    for (const [nombre, buffer] of Object.entries(docsPersonalizados)) {
+      zipFinal.file(nombre, buffer);
+    }
+    zipFinal.file(nombreCronograma, fs.readFileSync(nombreCronograma));
+
+    const zipBuffer = await zipFinal.generateAsync({ type: 'nodebuffer' });
+    const nombreZip = `CERTUS_PLD_${empresa.replace(/\s/g, '_')}_${Date.now()}.zip`;
+    fs.writeFileSync(nombreZip, zipBuffer);
+    console.log(`✓ ZIP creado: ${nombreZip}`);
+    console.log(`  Tamaño: ${(zipBuffer.length / 1024 / 1024).toFixed(2)} MB\n`);
+
     console.log(`✅ ¡COMPLETADO!\n`);
     console.log(`📍 Archivos generados:`);
     console.log(`   • ${nombreZip}`);
