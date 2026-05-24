@@ -258,7 +258,10 @@ async function main() {
     for (const [nombre, buffer] of Object.entries(docsPersonalizados)) {
       zipFinal.file(nombre, buffer);
     }
-    
+// Agregar cronograma al ZIP
+zipFinal.file(nombreCronograma, fs.readFileSync(nombreCronograma));
+
+const zipBuffer = await zipFinal.generateAsync({ type: 'nodebuffer' });    
     const zipBuffer = await zipFinal.generateAsync({ type: 'nodebuffer' });
     const nombreZip = `CERTUS_PLD_${empresa.replace(/\s/g, '_')}_${Date.now()}.zip`;
     
@@ -272,7 +275,10 @@ async function main() {
     const nombreCronograma = `CRONOGRAMA_${empresa.replace(/\s/g, '_')}_${Date.now()}.txt`;
     fs.writeFileSync(nombreCronograma, cronograma, 'utf8');
     console.log(`✓ Cronograma creado: ${nombreCronograma}\n`);
-    
+// Copiar cronograma txt a docx renombrado
+const nombreCronogramaDocx = nombreCronograma.replace('.txt', '.docx');
+fs.copyFileSync(nombreCronograma, nombreCronogramaDocx);
+console.log(`✓ También disponible como: ${nombreCronogramaDocx}\n`);
     console.log(`✅ ¡COMPLETADO!\n`);
     console.log(`📍 Archivos generados:`);
     console.log(`   • ${nombreZip}`);
