@@ -1,18 +1,13 @@
-{
+﻿{
   "name": "generador",
   "version": "1.0.0",
-  "description": "Generador automático de documentos PLD/FT personalizados",
+  "description": "Generador automatico de documentos PLD/FT personalizados",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "test": "node test-generador.js"
   },
-  "keywords": [
-    "PLD",
-    "FT",
-    "documentos",
-    "automatización"
-  ],
+  "keywords": ["PLD", "FT", "documentos", "automatizacion"],
   "author": "Certus Consultores",
   "license": "MIT",
   "dependencies": {
@@ -23,13 +18,10 @@
     "express": "^4.18.2",
     "jszip": "^3.10.1",
     "uuid": "^14.0.0",
-   "jsonwebtoken": "^9.0.0",
+    "jsonwebtoken": "^9.0.0",
     "docx": "^9.6.1"
   },
   "engines": {
     "node": ">=16.0.0"
-  },
-"dependencies": {
-  "jszip": "...",
-  "docx": "^9.0.0"
+  }
 }
