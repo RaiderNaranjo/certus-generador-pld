@@ -252,12 +252,6 @@ async function main() {
       console.log(`  ✓ ${archivo}`);
     }
     
-    console.log(`\n📦 Comprimiendo documentos...\n`);
-    
-    const zipFinal = new JSZip();
-    for (const [nombre, buffer] of Object.entries(docsPersonalizados)) {
-      zipFinal.file(nombre, buffer);
-    }
 console.log(`\n📅 Generando cronograma...\n`);
     const cronograma = await generarCronograma(empresa, rfc);
     const nombreCronograma = `CRONOGRAMA_${empresa.replace(/\s/g, '_')}_${Date.now()}.txt`;
