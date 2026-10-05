@@ -73,6 +73,7 @@ app.post('/api/generar-documentos', auth, async (req, res) => {
       'La Empresa': cliente.La_Empresa,
       'RFC': cliente.RFC,
       'Tipo': (cliente.Tipo || req.body.tipo || 'inmobiliaria'),
+      'TipoPersona': (cliente.TipoPersona || req.body.tipoPersona || ''),
       'Ciudad': cliente.Ciudad || 'Mérida',
       'Domicilio': cliente.Domicilio || '',
       'Actividades': cliente.Actividades || '',

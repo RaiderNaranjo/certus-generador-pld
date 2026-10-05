@@ -296,7 +296,7 @@ function buildFooter() {
 // ─────────────────────────────────────────────
 // FUNCIÓN PRINCIPAL — GENERA EL .docx
 // ─────────────────────────────────────────────
-async function generarCronograma(empresa, rfc) {
+async function generarCronograma(empresa, rfc, opts = {}) {
   const hoy = new Date();
   const fmt = (d) => d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
   const fmtLargo = (d) => d.toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -311,7 +311,9 @@ async function generarCronograma(empresa, rfc) {
       docs: [
         { id: 'D0', nombre: 'Carta de Recomendaciones Urgentes', descripcion: 'Comunicado inicial con recomendaciones críticas de cumplimiento' },
         { id: 'D1', nombre: 'Dictamen de Sujeción Normativa', descripcion: 'Evaluación legal de la obligación LFPIORPI' },
-        { id: 'D2', nombre: 'Acta de Designación del RC', descripcion: 'Documento de formalización del Representante de Cumplimiento' },
+        opts.tipoPersona === 'PF'
+          ? { id: 'D2', nombre: 'Constancia de Asunción Personal', descripcion: 'El profesional asume personal y directamente el cumplimiento (art. 20 LFPIORPI)' }
+          : { id: 'D2', nombre: 'Acta de Designación del RC', descripcion: 'Documento de formalización del Representante de Cumplimiento' },
         { id: 'D3', nombre: 'Expediente de Registro SPPLD', descripcion: 'Documentos para registrar ante el SAT' },
       ]
     },
@@ -455,11 +457,16 @@ async function main() {
     console.log(`🆔 RFC: ${rfc}`);
     console.log(`📍 Ciudad: ${ciudad}\n`);
  
-    const tipo = (datosFormulario['Tipo'] || 'inmobiliaria').toString().toLowerCase();
-    if (!['inmobiliaria', 'notarial'].includes(tipo)) {
-      console.error(`❌ Tipo inválido: ${tipo} (use inmobiliaria o notarial)`);
+    const alias = { profesionista: 'profesionistas', profesional: 'profesionistas', profesionales: 'profesionistas', notaria: 'notarial', notaría: 'notarial' };
+    let tipo = (datosFormulario['Tipo'] || 'inmobiliaria').toString().trim().toLowerCase();
+    tipo = alias[tipo] || tipo;
+    if (!['inmobiliaria', 'notarial', 'profesionistas'].includes(tipo)) {
+      console.error(`❌ Tipo inválido: ${tipo} (use inmobiliaria, notarial o profesionistas)`);
       process.exit(1);
     }
+    // Persona física (profesional independiente) o moral (despacho) — solo aplica a profesionistas
+    const tpRaw = (datosFormulario['TipoPersona'] || '').toString().trim().toLowerCase();
+    const tipoPersona = /^(pf|fisica|física|persona f)/.test(tpRaw) ? 'PF' : (/^(pm|moral|persona m|despacho)/.test(tpRaw) ? 'PM' : '');
     const dirPlantillas = path.join(__dirname, 'plantillas', tipo);
     if (!fs.existsSync(dirPlantillas)) {
       console.error(`❌ Carpeta plantillas no encontrada en: ${dirPlantillas}`);
@@ -480,7 +487,13 @@ async function main() {
     const seleccion = new Set(Object.values(vigentes).map(v => v.f));
     archivos.splice(0, archivos.length, ...archivos.filter(f => seleccion.has(f)));
 
-    console.log(`📄 Personalizando ${archivos.length} documentos (${tipo})...\n`);
+    // Profesionistas: solo el documento D2 que corresponde al tipo de sujeto obligado
+    if (tipo === 'profesionistas' && tipoPersona) {
+      const excluir = tipoPersona === 'PF' ? 'D2-PROF-PM' : 'D2-PROF-PF';
+      archivos.splice(0, archivos.length, ...archivos.filter(f => !f.startsWith(excluir)));
+    }
+
+    console.log(`📄 Personalizando ${archivos.length} documentos (${tipo}${tipoPersona ? ', ' + tipoPersona : ''})...\n`);
 
     const docsPersonalizados = {};
 
@@ -488,7 +501,9 @@ async function main() {
     const rc = datosFormulario['RepresentantePLD'] || '';
     const repLegal = datosFormulario['NombreRepresentanteLegal'] || '';
     const actividades = datosFormulario['Actividades'] ||
-      (tipo === 'notarial' ? 'Fe pública notarial' : 'Compraventa de inmuebles, arrendamiento y desarrollo de proyectos inmobiliarios');
+      (tipo === 'notarial' ? 'Fe pública notarial'
+        : tipo === 'profesionistas' ? 'Servicios profesionales independientes (art. 17, fr. XI, LFPIORPI)'
+        : 'Compraventa de inmuebles, arrendamiento y desarrollo de proyectos inmobiliarios');
     const hoy = new Date();
     const fechaCorta = hoy.toLocaleDateString('es-MX');
     const fechaLarga = hoy.toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -535,6 +550,33 @@ async function main() {
       });
     }
 
+    if (tipo === 'profesionistas') {
+      Object.assign(reemplazos, {
+        '[Nombre]': empresa,
+        '[Nombre del despacho]': empresa,
+        '[Razón social completa del despacho]': empresa,
+        '[Nombre completo del profesional o denominación del despacho]': empresa,
+        '[Nombre del profesional / representante del despacho]': repLegal || empresa,
+        '[Nombre completo]': empresa,
+        '[Nombre del profesional]': empresa,
+        '[Ciudad, Fecha]': `${ciudad}, ${fechaLarga}`
+      });
+      if (tipoPersona) {
+        reemplazos['[Persona física — profesional independiente  /  Persona moral — despacho]'] =
+          tipoPersona === 'PF' ? 'Persona física — profesional independiente' : 'Persona moral — despacho';
+        reemplazos['[profesional / despacho]'] = tipoPersona === 'PF' ? 'profesional' : 'despacho';
+        const titular = tipoPersona === 'PF' ? 'Profesional Titular' : null;
+        reemplazos['[Profesional Titular / Órgano de administración]'] = titular || 'Órgano de administración';
+        reemplazos['[Profesional Titular / Órgano de administración del despacho]'] = titular || 'Órgano de administración del despacho';
+        reemplazos['[Profesional Titular / Repr. de Cumplimiento]'] = titular || 'Representante de Cumplimiento';
+        reemplazos['[Profesional Titular / Representante de Cumplimiento]'] = titular || 'Representante de Cumplimiento';
+      }
+      if (datosFormulario['Actividades']) {
+        reemplazos['[Abogacía / Contaduría pública / Asesoría corporativa — especificar]'] = actividades;
+        reemplazos['[Actividad profesional]'] = actividades;
+      }
+    }
+
     // Reemplazo a nivel de párrafo: cubre marcadores partidos en varios runs
     const reemplazarEnParrafos = (xml) => xml.replace(/<w:p[ >][\s\S]*?<\/w:p>/g, (p) => {
       const ts = [...p.matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g)];
@@ -574,7 +616,7 @@ async function main() {
     }
 
     console.log(`\n📅 Generando cronograma...\n`);
-    const cronogramaBuffer = await generarCronograma(empresa, rfc);
+    const cronogramaBuffer = await generarCronograma(empresa, rfc, { tipo, tipoPersona });
     const nombreCronograma = `CRONOGRAMA_${empresa.replace(/\s/g, '_')}_${Date.now()}.docx`;
     fs.writeFileSync(nombreCronograma, cronogramaBuffer);
     console.log(`✓ Cronograma creado: ${nombreCronograma}\n`);
