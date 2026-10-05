@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type']
+  allowedHeaders: ['Content-Type', 'x-api-key']
 }));
 
 app.use(express.json({ limit: '50mb' }));
@@ -31,8 +31,20 @@ app.get('/health', (req, res) => {
   });
 });
 
+// ===== AUTENTICACIÓN (API_KEY en variables de Railway) =====
+const auth = (req, res, next) => {
+  const key = process.env.API_KEY;
+  if (!key) return next();
+  if (req.get('x-api-key') !== key) {
+    return res.status(401).json({ success: false, error: 'No autorizado' });
+  }
+  next();
+};
+
+const limpiar = (t) => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60);
+
 // ===== ENDPOINT PRINCIPAL =====
-app.post('/api/generar-documentos', async (req, res) => {
+app.post('/api/generar-documentos', auth, async (req, res) => {
   const requestId = Date.now().toString().slice(-8);
   
   try {
@@ -49,7 +61,7 @@ app.post('/api/generar-documentos', async (req, res) => {
 
     // Crear directorio temporal
     const timestamp = Date.now();
-    const tempDir = path.join(__dirname, '.temp', `${cliente.RFC}_${requestId}`);
+    const tempDir = path.join(__dirname, '.temp', `${limpiar(cliente.RFC)}_${requestId}`);
     const outputDir = path.join(__dirname, 'outputs');
     
     fs.mkdirSync(tempDir, { recursive: true });
@@ -60,6 +72,7 @@ app.post('/api/generar-documentos', async (req, res) => {
     fs.writeFileSync(clienteJsonPath, JSON.stringify({
       'La Empresa': cliente.La_Empresa,
       'RFC': cliente.RFC,
+      'Tipo': (cliente.Tipo || req.body.tipo || 'inmobiliaria'),
       'Ciudad': cliente.Ciudad || 'Mérida',
       'Domicilio': cliente.Domicilio || '',
       'Actividades': cliente.Actividades || '',
@@ -116,15 +129,13 @@ app.post('/api/generar-documentos', async (req, res) => {
     const zipStats = fs.statSync(zipPath);
 
     // Guardar en outputs
-    const nombreFinal = `${cliente.RFC}_${cliente.La_Empresa.replace(/\s+/g, '_')}_${Date.now()}.zip`;
+    const nombreFinal = `${limpiar(cliente.RFC)}_${limpiar(cliente.La_Empresa)}_${Date.now()}.zip`;
     const rutaFinal = path.join(outputDir, nombreFinal);
     fs.copyFileSync(zipPath, rutaFinal);
 
     console.log(`💾 ZIP guardado: ${nombreFinal}`);
 
-    // Leer como base64
-    const zipBuffer = fs.readFileSync(rutaFinal);
-    const zipBase64 = zipBuffer.toString('base64');
+    const totalDocs = (/Personalizando (\d+) documentos/.exec(generarResult.stdout) || [])[1] || 0;
 
     const baseURL = process.env.BASE_URL || 'https://certus-generador-pld-production.up.railway.app';
     const downloadUrl = `${baseURL}/descargar/${nombreFinal}`;
@@ -139,13 +150,12 @@ app.post('/api/generar-documentos', async (req, res) => {
         email: cliente.Email || ''
       },
       documentos: {
-        generados: 17,
-        total: 17,
+        generados: Number(totalDocs) + 1,
+        total: Number(totalDocs) + 1,
         nombre: nombreFinal,
         tamaño_mb: (zipStats.size / 1024 / 1024).toFixed(2)
       },
       downloadUrl: downloadUrl,
-      zipBase64: zipBase64,
       zipNombre: nombreFinal
     });
 
@@ -170,7 +180,7 @@ app.post('/api/generar-documentos', async (req, res) => {
 
 // ===== DESCARGAR =====
 app.get('/descargar/:archivo', (req, res) => {
-  const archivo = req.params.archivo;
+  const archivo = path.basename(req.params.archivo);
   const rutaArchivo = path.join(__dirname, 'outputs', archivo);
 
   if (!fs.existsSync(rutaArchivo)) {

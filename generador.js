@@ -455,66 +455,124 @@ async function main() {
     console.log(`🆔 RFC: ${rfc}`);
     console.log(`📍 Ciudad: ${ciudad}\n`);
  
-    const dirPlantillas = path.join(__dirname, 'plantillas');
+    const tipo = (datosFormulario['Tipo'] || 'inmobiliaria').toString().toLowerCase();
+    if (!['inmobiliaria', 'notarial'].includes(tipo)) {
+      console.error(`❌ Tipo inválido: ${tipo} (use inmobiliaria o notarial)`);
+      process.exit(1);
+    }
+    const dirPlantillas = path.join(__dirname, 'plantillas', tipo);
     if (!fs.existsSync(dirPlantillas)) {
       console.error(`❌ Carpeta plantillas no encontrada en: ${dirPlantillas}`);
       process.exit(1);
     }
- 
+
     const archivos = fs.readdirSync(dirPlantillas)
-      .filter(f => f.endsWith('.docx'))
+      .filter(f => f.endsWith('.docx') && !f.startsWith('~$'))
       .sort();
- 
-    console.log(`📄 Personalizando ${archivos.length} documentos...\n`);
- 
+    // Si hay varias versiones del mismo documento (_v2, _v3), solo la más reciente
+    const vigentes = {};
+    for (const f of archivos) {
+      const m = /^(.*?)_v(\d+)\.docx$/.exec(f);
+      const base = m ? m[1].replace(/_CertusPLD$/, '') : f;
+      const ver = m ? Number(m[2]) : 0;
+      if (!vigentes[base] || ver > vigentes[base].ver) vigentes[base] = { f, ver };
+    }
+    const seleccion = new Set(Object.values(vigentes).map(v => v.f));
+    archivos.splice(0, archivos.length, ...archivos.filter(f => seleccion.has(f)));
+
+    console.log(`📄 Personalizando ${archivos.length} documentos (${tipo})...\n`);
+
     const docsPersonalizados = {};
- 
+
+    const domicilio = datosFormulario['Domicilio'] || (ciudad + ', México');
+    const rc = datosFormulario['RepresentantePLD'] || '';
+    const repLegal = datosFormulario['NombreRepresentanteLegal'] || '';
+    const actividades = datosFormulario['Actividades'] ||
+      (tipo === 'notarial' ? 'Fe pública notarial' : 'Compraventa de inmuebles, arrendamiento y desarrollo de proyectos inmobiliarios');
+    const hoy = new Date();
+    const fechaCorta = hoy.toLocaleDateString('es-MX');
+    const fechaLarga = hoy.toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    // Solo se reemplaza lo que se conoce; el resto queda como campo por llenar
     const reemplazos = {
       '[NOMBRE DE LA INMOBILIARIA]': empresa,
       '[Nombre de la Inmobiliaria]': empresa,
       '[NOMBRE DEL CLIENTE]': empresa,
+      '[La_Empresa]': empresa,
+      '[La Empresa]': empresa,
+      '[EMPRESA]': empresa,
+      '[Empresa]': empresa,
+      '[Razón social completa]': empresa,
+      '[Denominación de la Notaría]': empresa,
+      '[Denominación completa]': empresa,
+      '[NOMBRE DE LA NOTARIA]': empresa,
       '[RFC]': rfc,
+      '[RFC_EMPRESA]': rfc,
       '[RFC de la empresa]': rfc,
       '[CIUDAD]': ciudad,
-      '[DOMICILIO]': ciudad + ', México',
-      '[DOMICILIO FISCAL]': ciudad + ', México',
-      '[FECHA]': new Date().toLocaleDateString('es-MX'),
-      '[FECHACOMPLETA]': new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-      '[ACTIVIDADES]': 'Compraventa de inmuebles, arrendamiento y desarrollo de proyectos inmobiliarios',
-      '[NOMBRE DEL REPRESENTANTE LEGAL]': '[Nombre del Representante Legal]',
-      '[NOMBRE RC]': '[Nombre del RC]',
-      '[CARGO RC]': '[Cargo del RC]',
-      '[EMAIL RC]': '[Email del RC]',
-      '[TELEFONO RC]': '[Teléfono del RC]',
-      '[ÓRGANO DE ADMINISTRACIÓN]': '[Órgano de administración]',
-      '[NUMERO OPERACIONES]': '[Número de operaciones]',
-      '[VERSION]': '1.0',
-      '[Razón social completa]': empresa,
-      '[Calle, Numero, Colonia, CP, Municipio, Estado]': ciudad + ', México',
-      '[Número asignado por el SAT]': '[SPPLD]',
-      '[SPPLD]': '[SPPLD]'
+      '[Ciudad]': ciudad,
+      '[Domicilio]': domicilio,
+      '[DOMICILIO]': domicilio,
+      '[DOMICILIO FISCAL]': domicilio,
+      '[Calle, Numero, Colonia, CP, Municipio, Estado]': domicilio,
+      '[FECHA]': fechaCorta,
+      '[Fecha]': fechaCorta,
+      '[FECHACOMPLETA]': fechaLarga,
+      '[ACTIVIDADES]': actividades,
+      '[VERSION]': '1.0'
     };
- 
+    if (rc) {
+      Object.assign(reemplazos, {
+        '[RC_Nombre]': rc, '[NOMBRE RC]': rc,
+        '[Nombre del Representante de Cumplimiento]': rc, '[Nombre del RC]': rc
+      });
+    }
+    if (repLegal) {
+      Object.assign(reemplazos, {
+        '[NOMBRE DEL REPRESENTANTE LEGAL]': repLegal,
+        '[Nombre del Notario Titular]': repLegal,
+        '[NOTARIO TITULAR]': repLegal
+      });
+    }
+
+    // Reemplazo a nivel de párrafo: cubre marcadores partidos en varios runs
+    const reemplazarEnParrafos = (xml) => xml.replace(/<w:p[ >][\s\S]*?<\/w:p>/g, (p) => {
+      const ts = [...p.matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g)];
+      if (ts.length < 2) return p;
+      const texto = ts.map(m => m[1]).join('');
+      if (!texto.includes('[')) return p;
+      let nuevo = texto;
+      for (const [ph, val] of Object.entries(reemplazos)) {
+        const phx = ph.replace(/&/g, '&amp;');
+        nuevo = nuevo.split(phx).join(String(val).replace(/&/g, '&amp;').replace(/</g, '&lt;'));
+      }
+      if (nuevo === texto) return p;
+      let i = 0;
+      return p.replace(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g, () =>
+        i++ === 0 ? `<w:t xml:space="preserve">${nuevo}</w:t>` : '<w:t></w:t>');
+    });
+
     for (const archivo of archivos) {
       const rutaPlantilla = path.join(dirPlantillas, archivo);
       const buffer = fs.readFileSync(rutaPlantilla);
- 
+
       const zip = new JSZip();
       await zip.loadAsync(buffer);
- 
-      let docXml = await zip.file('word/document.xml').async('string');
- 
-      for (const [placeholder, valor] of Object.entries(reemplazos)) {
-        docXml = docXml.split(placeholder).join(valor);
+
+      for (const parte of Object.keys(zip.files).filter(n => /^word\/(document|header\d*|footer\d*)\.xml$/.test(n))) {
+        let xml = await zip.file(parte).async('string');
+        for (const [placeholder, valor] of Object.entries(reemplazos)) {
+          xml = xml.split(placeholder).join(String(valor).replace(/&/g, '&amp;').replace(/</g, '&lt;'));
+        }
+        xml = reemplazarEnParrafos(xml);
+        zip.file(parte, xml);
       }
- 
-      zip.file('word/document.xml', docXml);
-      const personalizado = await zip.generateAsync({ type: 'nodebuffer' });
- 
+      const personalizado = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+
       docsPersonalizados[archivo] = personalizado;
       console.log(`  ✓ ${archivo}`);
     }
- 
+
     console.log(`\n📅 Generando cronograma...\n`);
     const cronogramaBuffer = await generarCronograma(empresa, rfc);
     const nombreCronograma = `CRONOGRAMA_${empresa.replace(/\s/g, '_')}_${Date.now()}.docx`;
