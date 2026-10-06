@@ -613,6 +613,35 @@ async function main() {
         i++ === 0 ? `<w:t xml:space="preserve">${nuevo}</w:t>` : '<w:t></w:t>');
     });
 
+    // Cronograma propio del producto (p. ej. CRONOGRAMA-NOT): fechas por semana, titular e incisos
+    const esCronogramaPropio = (a) => /^CRONOGRAMA-/i.test(a);
+    const tieneCronogramaPropio = archivos.some(esCronogramaPropio);
+    const fmtFecha = (d) => d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+    const sumaSemanas = (w) => { const d = new Date(hoy); d.setDate(d.getDate() + w * 7); return d; };
+    const personalizarCronograma = (xml) => {
+      const fechas = [hoy, sumaSemanas(1), sumaSemanas(2), sumaSemanas(3), sumaSemanas(4), sumaSemanas(8)].map(fmtFecha);
+      const letras = (datosFormulario['Incisos'] || '').toString().split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+      const titular = repLegal || empresa;
+      let idx = 0;
+      return xml.replace(/<w:p[ >][\s\S]*?<\/w:p>/g, (p) => {
+        const ts = [...p.matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g)];
+        if (!ts.length) return p;
+        const texto = ts.map(m => m[1]).join('');
+        let nuevo = texto;
+        if (nuevo.includes('[Fecha]')) {
+          nuevo = nuevo.split('[Fecha]').join(fechas[Math.min(idx++, fechas.length - 1)]);
+        }
+        if (nuevo.includes('[Nombre]')) nuevo = nuevo.split('[Nombre]').join(titular.replace(/&/g, '&amp;'));
+        if (/\[ \] a/.test(nuevo) && letras.length) {
+          nuevo = nuevo.replace(/\[ \] ([a-e])/g, (m, l) => (letras.includes(l) ? '[X] ' : '[ ] ') + l);
+        }
+        if (nuevo === texto) return p;
+        let i = 0;
+        return p.replace(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g, () =>
+          i++ === 0 ? `<w:t xml:space="preserve">${nuevo}</w:t>` : '<w:t></w:t>');
+      });
+    };
+
     for (const archivo of archivos) {
       const rutaPlantilla = path.join(dirPlantillas, archivo);
       const buffer = fs.readFileSync(rutaPlantilla);
@@ -622,6 +651,7 @@ async function main() {
 
       for (const parte of Object.keys(zip.files).filter(n => /^word\/(document|header\d*|footer\d*)\.xml$/.test(n))) {
         let xml = await zip.file(parte).async('string');
+        if (esCronogramaPropio(archivo) && parte === 'word/document.xml') xml = personalizarCronograma(xml);
         for (const [placeholder, valor] of Object.entries(reemplazos)) {
           xml = xml.split(placeholder).join(String(valor).replace(/&/g, '&amp;').replace(/</g, '&lt;'));
         }
@@ -634,18 +664,22 @@ async function main() {
       console.log(`  ✓ ${archivo}`);
     }
 
-    console.log(`\n📅 Generando cronograma...\n`);
-    const cronogramaBuffer = await generarCronograma(empresa, rfc, { tipo, tipoPersona });
-    const nombreCronograma = `CRONOGRAMA_${empresa.replace(/\s/g, '_')}_${Date.now()}.docx`;
-    fs.writeFileSync(nombreCronograma, cronogramaBuffer);
-    console.log(`✓ Cronograma creado: ${nombreCronograma}\n`);
+    let cronogramaBuffer = null;
+    let nombreCronograma = null;
+    if (!tieneCronogramaPropio) {
+      console.log(`\n📅 Generando cronograma...\n`);
+      cronogramaBuffer = await generarCronograma(empresa, rfc, { tipo, tipoPersona });
+      nombreCronograma = `CRONOGRAMA_${empresa.replace(/\s/g, '_')}_${Date.now()}.docx`;
+      fs.writeFileSync(nombreCronograma, cronogramaBuffer);
+      console.log(`✓ Cronograma creado: ${nombreCronograma}\n`);
+    }
  
     console.log(`\n📦 Comprimiendo documentos...\n`);
     const zipFinal = new JSZip();
     for (const [nombre, buffer] of Object.entries(docsPersonalizados)) {
       zipFinal.file(nombre, buffer);
     }
-    zipFinal.file(nombreCronograma, cronogramaBuffer);
+    if (cronogramaBuffer) zipFinal.file(nombreCronograma, cronogramaBuffer);
  
     const zipBuffer = await zipFinal.generateAsync({ type: 'nodebuffer' });
     const nombreZip = `CERTUS_PLD_${empresa.replace(/\s/g, '_')}_${Date.now()}.zip`;
@@ -656,7 +690,8 @@ async function main() {
     console.log(`✅ ¡COMPLETADO!\n`);
     console.log(`📍 Archivos generados:`);
     console.log(`   • ${nombreZip}`);
-    console.log(`   • ${nombreCronograma}\n`);
+    if (nombreCronograma) console.log(`   • ${nombreCronograma}`);
+    console.log('');
     console.log(`💡 Próxima vez: node generador.js '{"La Empresa":"Nuevo Cliente","RFC":"XYZ123","Ciudad":"Mérida"}'\n`);
  
   } catch (error) {
