@@ -80,7 +80,17 @@ app.post('/api/generar-documentos', auth, async (req, res) => {
       'Email': cliente.Email || '',
       'UMA': cliente.UMA || '117.31',
       'RepresentantePLD': cliente.RepresentantePLD || '',
-      'NombreRepresentanteLegal': cliente.NombreRepresentanteLegal || ''
+      'NombreRepresentanteLegal': cliente.NombreRepresentanteLegal || '',
+      'Incisos': cliente.Incisos || '',
+      'IncisosTexto': cliente.IncisosTexto || '',
+      'IncisosNoPrestados': cliente.IncisosNoPrestados || '',
+      'NumeroNotaria': cliente.NumeroNotaria || '',
+      'Profesion': cliente.Profesion || '',
+      'CedulaProfesional': cliente.CedulaProfesional || '',
+      'ActuaEnRepresentacion': cliente.ActuaEnRepresentacion || '',
+      'LineasExcluidas': cliente.LineasExcluidas || '',
+      'EncargadoOperativo': cliente.EncargadoOperativo || '',
+      'Telefono': cliente.TelefonoRL || ''
     }));
 
     // Ejecutar generador.js

@@ -577,6 +577,25 @@ async function main() {
       }
     }
 
+    // Incisos que no se prestan / no se formalizan (según intake)
+    const incNo = (datosFormulario['IncisosNoPrestados'] || '').toString().trim();
+    if (incNo) {
+      if (tipo === 'notarial') {
+        reemplazos['[INCISOS QUE LA NOTARÍA NO FORMALIZA, O “NINGUNO”]'] = incNo;
+        reemplazos['[INCISOS QUE LA NOTARÍA NO FORMALIZA, O "NINGUNO"]'] = incNo;
+      } else if (tipo === 'profesionistas') {
+        reemplazos['[INCISOS QUE NO SE PRESTAN — a), b), c), d) y/o e)]'] = incNo;
+      }
+    }
+    if (tipo === 'profesionistas') {
+      const incl = (datosFormulario['IncisosTexto'] || '').toString().trim();
+      const excl = (datosFormulario['LineasExcluidas'] || '').toString().trim();
+      if (datosFormulario['Incisos'] !== undefined && datosFormulario['IncisosNoPrestados']) {
+        reemplazos['[LISTA DE LÍNEAS INCLUIDAS]'] = incl || 'ninguna';
+        reemplazos['[LISTA DE LÍNEAS EXCLUIDAS]'] = excl || 'las demás líneas de servicio que no involucran los incisos a) a e)';
+      }
+    }
+
     // Reemplazo a nivel de párrafo: cubre marcadores partidos en varios runs
     const reemplazarEnParrafos = (xml) => xml.replace(/<w:p[ >][\s\S]*?<\/w:p>/g, (p) => {
       const ts = [...p.matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g)];
