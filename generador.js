@@ -631,6 +631,19 @@ async function main() {
         if (nuevo.includes('[Fecha]')) {
           nuevo = nuevo.split('[Fecha]').join(fechas[Math.min(idx++, fechas.length - 1)]);
         }
+        if (nuevo.includes('[D2 ') || nuevo.includes('[OBS2]') || nuevo.includes('[PASO2]')) {
+          const pf = tipoPersona === 'PF', pm = tipoPersona === 'PM';
+          const d2 = pf ? ['D2-PROF-PF', 'Constancia de Asunción Personal', 'El profesional asume personal y directamente el cumplimiento (art. 20 de la Ley)']
+            : pm ? ['D2-PROF-PM', 'Acta de Designación del Representante de Cumplimiento', 'Designación del Representante de Cumplimiento por el órgano de administración, con aceptación en el Portal (arts. 20 de la Ley y 10 RCG)']
+            : ['D2-PROF', 'Constancia de Asunción Personal / Acta de Designación del RC', 'Formalización de la responsabilidad de cumplimiento según el tipo de sujeto'];
+          const obs2 = pf ? '2. El profesional cumple personal y directamente con la Ley (art. 20); esa responsabilidad no se traslada a terceros y debe estar disponible para las capacitaciones.'
+            : pm ? '2. El despacho designa a un Representante de Cumplimiento (persona física con facultades suficientes), quien debe aceptar su designación en el Portal con su RFC y e.firma, y estar disponible para las capacitaciones.'
+            : '2. La responsabilidad de cumplimiento depende del tipo de sujeto: la persona física cumple personal y directamente (art. 20); la persona moral designa a un Representante de Cumplimiento.';
+          const paso2 = pf ? '2. Firmar la Constancia de Asunción Personal (D2-PROF-PF) y, si aplica, designar a la persona de apoyo operativo.'
+            : pm ? '2. Formalizar el Acta de Designación del Representante de Cumplimiento (D2-PROF-PM) y gestionar su aceptación en el Portal.'
+            : '2. Formalizar la responsabilidad de cumplimiento (D2-PROF) conforme al tipo de sujeto.';
+          nuevo = nuevo.replace('[D2 ID]', d2[0]).replace('[D2 NOMBRE]', d2[1]).replace('[D2 DESC]', d2[2]).replace('[OBS2]', obs2).replace('[PASO2]', paso2);
+        }
         if (nuevo.includes('[Nombre]')) nuevo = nuevo.split('[Nombre]').join(titular.replace(/&/g, '&amp;'));
         if (/\[ \] a/.test(nuevo) && letras.length) {
           nuevo = nuevo.replace(/\[ \] ([a-e])/g, (m, l) => (letras.includes(l) ? '[X] ' : '[ ] ') + l);
