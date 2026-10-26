@@ -85,6 +85,8 @@ app.post('/api/generar-documentos', auth, async (req, res) => {
       'IncisosTexto': cliente.IncisosTexto || '',
       'IncisosNoPrestados': cliente.IncisosNoPrestados || '',
       'NumeroNotaria': cliente.NumeroNotaria || '',
+      'NumeroCorreduria': cliente.NumeroCorreduria || '',
+      'Plaza': cliente.Plaza || '',
       'Profesion': cliente.Profesion || '',
       'CedulaProfesional': cliente.CedulaProfesional || '',
       'ActuaEnRepresentacion': cliente.ActuaEnRepresentacion || '',
