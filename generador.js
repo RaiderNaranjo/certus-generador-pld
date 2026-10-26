@@ -457,11 +457,11 @@ async function main() {
     console.log(`🆔 RFC: ${rfc}`);
     console.log(`📍 Ciudad: ${ciudad}\n`);
  
-    const alias = { profesionista: 'profesionistas', profesional: 'profesionistas', profesionales: 'profesionistas', notaria: 'notarial', notaría: 'notarial' };
+    const alias = { profesionista: 'profesionistas', profesional: 'profesionistas', profesionales: 'profesionistas', notaria: 'notarial', notaría: 'notarial', corredor: 'corredores', correduria: 'corredores', correduría: 'corredores', 'corredor publico': 'corredores', 'corredor público': 'corredores' };
     let tipo = (datosFormulario['Tipo'] || 'inmobiliaria').toString().trim().toLowerCase();
     tipo = alias[tipo] || tipo;
-    if (!['inmobiliaria', 'notarial', 'profesionistas'].includes(tipo)) {
-      console.error(`❌ Tipo inválido: ${tipo} (use inmobiliaria, notarial o profesionistas)`);
+    if (!['inmobiliaria', 'notarial', 'profesionistas', 'corredores'].includes(tipo)) {
+      console.error(`❌ Tipo inválido: ${tipo} (use inmobiliaria, notarial, profesionistas o corredores)`);
       process.exit(1);
     }
     // Persona física (profesional independiente) o moral (despacho) — solo aplica a profesionistas
@@ -502,6 +502,7 @@ async function main() {
     const repLegal = datosFormulario['NombreRepresentanteLegal'] || '';
     const actividades = datosFormulario['Actividades'] ||
       (tipo === 'notarial' ? 'Fe pública notarial'
+        : tipo === 'corredores' ? 'Fe pública de corredor público (art. 17, fr. XII, Apartado B, LFPIORPI)'
         : tipo === 'profesionistas' ? 'Servicios profesionales independientes (art. 17, fr. XI, LFPIORPI)'
         : 'Compraventa de inmuebles, arrendamiento y desarrollo de proyectos inmobiliarios');
     const hoy = new Date();
@@ -521,6 +522,7 @@ async function main() {
       '[Denominación de la Notaría]': empresa,
       '[Denominación completa]': empresa,
       '[NOMBRE DE LA NOTARIA]': empresa,
+      '[Denominación de la Correduría]': empresa,
       '[RFC]': rfc,
       '[RFC_EMPRESA]': rfc,
       '[RFC de la empresa]': rfc,
@@ -546,8 +548,18 @@ async function main() {
       Object.assign(reemplazos, {
         '[NOMBRE DEL REPRESENTANTE LEGAL]': repLegal,
         '[Nombre del Notario Titular]': repLegal,
-        '[NOTARIO TITULAR]': repLegal
+        '[NOTARIO TITULAR]': repLegal,
+        '[Nombre del Corredor Público Titular]': repLegal,
+        '[Corredor Público Titular]': repLegal
       });
+    }
+
+    // Corredores públicos: número de correduría y plaza (opcionales en el intake)
+    if (tipo === 'corredores') {
+      const numCorr = (datosFormulario['NumeroCorreduria'] || datosFormulario['Numero'] || '').toString().trim();
+      const plaza = (datosFormulario['Plaza'] || '').toString().trim();
+      if (numCorr) reemplazos['[Número]'] = numCorr;
+      if (plaza) reemplazos['[Entidad federativa]'] = plaza;
     }
 
     if (tipo === 'profesionistas') {
@@ -583,6 +595,9 @@ async function main() {
       if (tipo === 'notarial') {
         reemplazos['[INCISOS QUE LA NOTARÍA NO FORMALIZA, O “NINGUNO”]'] = incNo;
         reemplazos['[INCISOS QUE LA NOTARÍA NO FORMALIZA, O "NINGUNO"]'] = incNo;
+      } else if (tipo === 'corredores') {
+        reemplazos['[INCISOS QUE LA CORREDURÍA NO FORMALIZA, O “NINGUNO”]'] = incNo;
+        reemplazos['[INCISOS QUE LA CORREDURÍA NO FORMALIZA, O "NINGUNO"]'] = incNo;
       } else if (tipo === 'profesionistas') {
         reemplazos['[INCISOS QUE NO SE PRESTAN — a), b), c), d) y/o e)]'] = incNo;
       }
