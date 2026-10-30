@@ -347,6 +347,7 @@ async function generarCronograma(empresa, rfc, opts = {}) {
         { id: 'D11B', nombre: 'Casos Prácticos Certus PLD', descripcion: 'Ejemplos de aplicación práctica' },
         { id: 'D11C', nombre: 'Evaluación de Comprensión', descripcion: 'Prueba de conocimiento del personal' },
         { id: 'D12',  nombre: 'Control de Avisos SAT', descripcion: 'Sistema de control de reportes mensuales' },
+        { id: 'D15',  nombre: 'Protocolo de Atención de Visitas', descripcion: 'Actuación ante visitas de verificación y requerimientos del SAT' },
       ]
     },
     {
@@ -487,10 +488,11 @@ async function main() {
     const seleccion = new Set(Object.values(vigentes).map(v => v.f));
     archivos.splice(0, archivos.length, ...archivos.filter(f => seleccion.has(f)));
 
-    // Profesionistas: solo el documento D2 que corresponde al tipo de sujeto obligado
+    // Profesionistas: solo los documentos (D2, D15) que corresponden al tipo de sujeto obligado
     if (tipo === 'profesionistas' && tipoPersona) {
-      const excluir = tipoPersona === 'PF' ? 'D2-PROF-PM' : 'D2-PROF-PF';
-      archivos.splice(0, archivos.length, ...archivos.filter(f => !f.startsWith(excluir)));
+      const otro = tipoPersona === 'PF' ? 'PM' : 'PF';
+      const excluir = [`D2-PROF-${otro}`, `D15-PROF-${otro}`];
+      archivos.splice(0, archivos.length, ...archivos.filter(f => !excluir.some(x => f.startsWith(x))));
     }
 
     console.log(`📄 Personalizando ${archivos.length} documentos (${tipo}${tipoPersona ? ', ' + tipoPersona : ''})...\n`);
