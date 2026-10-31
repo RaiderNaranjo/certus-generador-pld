@@ -323,7 +323,7 @@ async function generarCronograma(empresa, rfc, opts = {}) {
       objetivo: 'Evaluar brechas normativas y establecer metodología de riesgo',
       docs: [
         { id: 'D4', nombre: 'Gap Analysis PLD', descripcion: 'Análisis de brechas normativas de la empresa' },
-        { id: 'D5', nombre: 'Manual de Cumplimiento PLD/FT', descripcion: 'Procedimientos y políticas de cumplimiento' },
+        { id: 'D5', nombre: 'Manual de Políticas Internas PLD/FT', descripcion: 'Políticas, criterios y procedimientos internos (Capítulo X RCG)' },
         { id: 'D6', nombre: 'Metodología EBR', descripcion: 'Sistema de Enfoque Basado en Riesgo del cliente' },
       ]
     },
@@ -600,6 +600,10 @@ async function main() {
         reemplazos['[INCISOS QUE LA CORREDURÍA NO FORMALIZA, O "NINGUNO"]'] = incNo;
       } else if (tipo === 'profesionistas') {
         reemplazos['[INCISOS QUE NO SE PRESTAN — a), b), c), d) y/o e)]'] = incNo;
+      } else if (tipo === 'inmobiliaria') {
+        // Exención del art. 37 Bis 2 RCG en el D5 inmobiliario (fracciones o supuestos no realizados)
+        reemplazos['[SUPUESTOS QUE LA EMPRESA NO REALIZA, O “NINGUNO”]'] = incNo;
+        reemplazos['[SUPUESTOS QUE LA EMPRESA NO REALIZA, O "NINGUNO"]'] = incNo;
       }
     }
     if (tipo === 'profesionistas') {
