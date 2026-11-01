@@ -273,7 +273,7 @@ function buildFooter() {
               new Paragraph({
                 alignment: AlignmentType.CENTER,
                 spacing: { before: 0, after: 40 },
-                children: [new TextRun({ text: 'Certus Consultores', font: 'Arial', size: 22, bold: true, color: GOLD })]
+                children: [new TextRun({ text: 'Certus Consultores · Espinosa-Salazar Abogados Corporativos', font: 'Arial', size: 22, bold: true, color: GOLD })]
               }),
               new Paragraph({
                 alignment: AlignmentType.CENTER,
@@ -283,7 +283,7 @@ function buildFooter() {
               new Paragraph({
                 alignment: AlignmentType.CENTER,
                 spacing: { before: 0, after: 0 },
-                children: [new TextRun({ text: 'Mérida, Yucatán  •  contacto@certusconsultores.com.mx  •  Tel: 999 163 1363', font: 'Arial', size: 17, color: 'AAAAAA' })]
+                children: [new TextRun({ text: 'Mérida, Yucatán  •  contacto@certusconsultores.com.mx  •  Tel: 999 163 1363  •  contacto@espinosasalazarabogados.com  •  Tel: 999 575 3129', font: 'Arial', size: 17, color: 'AAAAAA' })]
               }),
             ]
           })
