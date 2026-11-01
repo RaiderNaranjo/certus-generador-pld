@@ -4,7 +4,8 @@ const JSZip = require('jszip');
 const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
   AlignmentType, BorderStyle, WidthType, ShadingType, VerticalAlign,
-  HeadingLevel, LevelFormat
+  HeadingLevel, LevelFormat, Header, Footer, ImageRun,
+  HorizontalPositionRelativeFrom, VerticalPositionRelativeFrom, TextWrappingType
 } = require('docx');
  
 // ─────────────────────────────────────────────
@@ -39,6 +40,34 @@ function cellText(text, opts = {}) {
       bold: opts.bold || false,
       color: opts.color || '1A1A1A',
     })]
+  });
+}
+ 
+// ─────────────────────────────────────────────
+// LOGOTIPOS DE LA ALIANZA EN LAS CUATRO ESQUINAS
+// Espinosa-Salazar a la izquierda, Certus a la derecha (arriba y abajo)
+// ─────────────────────────────────────────────
+const LOGO_ES = fs.readFileSync(path.join(__dirname, 'assets', 'alianza_es.png'));
+const LOGO_CERTUS = fs.readFileSync(path.join(__dirname, 'assets', 'alianza_certus.png'));
+function logosAlianza(arriba, anchoTw, altoTw) {
+  const EMU = 914400, px = 96;                 // docx usa pixeles a 96 ppp para transformation
+  const esH = 0.42 * px, esW = esH * 240 / 222;
+  const ceH = 0.36 * px, ceW = ceH * 600 / 231;
+  const mx = Math.round(0.25 * EMU), my = Math.round(0.05 * EMU);
+  const W = anchoTw * 635, H = altoTw * 635;
+  const esY = arriba ? my : H - my - Math.round(0.42 * EMU);
+  const ceY = arriba ? my + Math.round(0.03 * EMU) : H - my - Math.round(0.03 * EMU) - Math.round(0.36 * EMU);
+  const flotante = (x, y) => ({
+    horizontalPosition: { relative: HorizontalPositionRelativeFrom.PAGE, offset: x },
+    verticalPosition: { relative: VerticalPositionRelativeFrom.PAGE, offset: y },
+    wrap: { type: TextWrappingType.NONE }, allowOverlap: true
+  });
+  return new Paragraph({
+    spacing: { before: 0, after: 0, line: 20, lineRule: 'exact' },
+    children: [
+      new ImageRun({ type: 'png', data: LOGO_ES, transformation: { width: esW, height: esH }, floating: flotante(mx, esY) }),
+      new ImageRun({ type: 'png', data: LOGO_CERTUS, transformation: { width: ceW, height: ceH }, floating: flotante(W - mx - Math.round(ceW / px * EMU), ceY) }),
+    ]
   });
 }
  
@@ -273,7 +302,7 @@ function buildFooter() {
               new Paragraph({
                 alignment: AlignmentType.CENTER,
                 spacing: { before: 0, after: 40 },
-                children: [new TextRun({ text: 'Certus Consultores', font: 'Arial', size: 22, bold: true, color: GOLD })]
+                children: [new TextRun({ text: 'Certus Consultores · Espinosa-Salazar Abogados Corporativos', font: 'Arial', size: 22, bold: true, color: GOLD })]
               }),
               new Paragraph({
                 alignment: AlignmentType.CENTER,
@@ -283,7 +312,7 @@ function buildFooter() {
               new Paragraph({
                 alignment: AlignmentType.CENTER,
                 spacing: { before: 0, after: 0 },
-                children: [new TextRun({ text: 'Mérida, Yucatán  •  contacto@certusconsultores.com.mx  •  Tel: 999 163 1363', font: 'Arial', size: 17, color: 'AAAAAA' })]
+                children: [new TextRun({ text: 'Mérida, Yucatán  •  contacto@certusconsultores.com.mx  •  Tel: 999 163 1363  •  contacto@espinosasalazarabogados.com  •  Tel: 999 575 3129', font: 'Arial', size: 17, color: 'AAAAAA' })]
               }),
             ]
           })
@@ -409,6 +438,8 @@ async function generarCronograma(empresa, rfc, opts = {}) {
           margin: { top: 720, right: 720, bottom: 720, left: 720 }
         }
       },
+      headers: { default: new Header({ children: [logosAlianza(true, 12240, 15840)] }) },
+      footers: { default: new Footer({ children: [logosAlianza(false, 12240, 15840)] }) },
       children
     }]
   });
@@ -704,8 +735,13 @@ async function main() {
  
     console.log(`\n📦 Comprimiendo documentos...\n`);
     const zipFinal = new JSZip();
+    // Documentos de uso interno de Certus / Espinosa-Salazar (papeles de trabajo, actas de auditoría,
+    // regularización histórica, diagnóstico comercial y cronograma de planeación): van en una carpeta
+    // aparte para que no se entreguen al cliente por error.
+    const esInterno = (n) => /^(PT\d|PT-|ACTA\d|REQ\d|NOTA_|D0A|Diagnostico_Ejecutivo|Certus_Cronograma_Personalizable)/i.test(n);
+    const CARPETA_INTERNA = 'INTERNO_NO_ENTREGAR_AL_CLIENTE/';
     for (const [nombre, buffer] of Object.entries(docsPersonalizados)) {
-      zipFinal.file(nombre, buffer);
+      zipFinal.file(esInterno(nombre) ? CARPETA_INTERNA + nombre : nombre, buffer);
     }
     if (cronogramaBuffer) zipFinal.file(nombreCronograma, cronogramaBuffer);
  
