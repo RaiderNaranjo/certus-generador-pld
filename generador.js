@@ -336,9 +336,10 @@ async function generarCronograma(empresa, rfc, opts = {}) {
     {
       titulo: 'SEMANA 1 — Documentos Fundacionales',
       fecha: fmt(s(1)),
-      objetivo: 'Establecer la base legal y designar al Representante de Cumplimiento',
+      objetivo: 'Partir del diagnóstico de brechas para establecer la base legal y designar al Representante de Cumplimiento',
       docs: [
-        { id: 'D0', nombre: 'Carta de Recomendaciones Urgentes', descripcion: 'Comunicado inicial con recomendaciones críticas de cumplimiento' },
+        { id: 'D4', nombre: 'Gap Analysis PLD', descripcion: 'Punto de partida: análisis de brechas normativas de la empresa' },
+        { id: 'D0', nombre: 'Carta de Recomendaciones Urgentes', descripcion: 'Comunicado inicial, elaborado con los hallazgos del Gap Analysis, con recomendaciones críticas de cumplimiento' },
         { id: 'D1', nombre: 'Dictamen de Sujeción Normativa', descripcion: 'Evaluación legal de la obligación LFPIORPI' },
         opts.tipoPersona === 'PF'
           ? { id: 'D2', nombre: 'Constancia de Asunción Personal', descripcion: 'El profesional asume personal y directamente el cumplimiento (art. 20 LFPIORPI)' }
@@ -349,9 +350,8 @@ async function generarCronograma(empresa, rfc, opts = {}) {
     {
       titulo: 'SEMANA 2 — Análisis y Procedimientos',
       fecha: fmt(s(2)),
-      objetivo: 'Evaluar brechas normativas y establecer metodología de riesgo',
+      objetivo: 'Establecer los procedimientos y la metodología de riesgo a partir de las brechas identificadas',
       docs: [
-        { id: 'D4', nombre: 'Gap Analysis PLD', descripcion: 'Análisis de brechas normativas de la empresa' },
         { id: 'D5', nombre: 'Manual de Cumplimiento PLD/FT', descripcion: 'Procedimientos y políticas de cumplimiento' },
         { id: 'D6', nombre: 'Metodología EBR', descripcion: 'Sistema de Enfoque Basado en Riesgo del cliente' },
       ]
