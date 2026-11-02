@@ -12,10 +12,10 @@ const FUENTES = {
   ofac: {
     nombre: 'OFAC (SDN y lista consolidada, EE. UU.)',
     urls: [
-      'https://www.treasury.gov/ofac/downloads/sdn.csv',
-      'https://www.treasury.gov/ofac/downloads/alt.csv',
-      'https://www.treasury.gov/ofac/downloads/consolidated/cons_prim.csv',
-      'https://www.treasury.gov/ofac/downloads/consolidated/cons_alt.csv'
+      'https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN.CSV',
+      'https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/ALT.CSV',
+      'https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/CONS_PRIM.CSV',
+      'https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/CONS_ALT.CSV'
     ],
     tipo: 'nombres'
   },
@@ -75,12 +75,22 @@ function filasCSV(texto, cb) {
   if (campo || fila.length) { fila.push(campo); cb(fila); }
 }
 
+const https = require('https');
+// Algunos servidores públicos (p. ej. el Tesoro de EE. UU.) no envían la cadena de certificados completa.
+// Solo para esos dominios se reintenta sin validar la cadena; son datos públicos de solo lectura.
+const RELAJAR_TLS = /(^|\.)(treas\.gov|treasury\.gov)$/i;
 async function bajar(url) {
-  const r = await axios.get(url, {
+  const opts = {
     responseType: 'arraybuffer', timeout: 180000, maxContentLength: Infinity, maxBodyLength: Infinity,
     headers: { 'User-Agent': 'Mozilla/5.0 (Certus PLD; consulta de listas)' }
-  });
-  return decodifica(r.data);
+  };
+  try { return decodifica((await axios.get(url, opts)).data); }
+  catch (err) {
+    const host = new URL(url).hostname;
+    if (!/CERT|SELF_SIGNED|UNABLE_TO_VERIFY/.test(err.code || '') || !RELAJAR_TLS.test(host)) throw err;
+    console.warn('Listas: reintento sin validar la cadena TLS para', host, err.code);
+    return decodifica((await axios.get(url, Object.assign({}, opts, { httpsAgent: new https.Agent({ rejectUnauthorized: false }) }))).data);
+  }
 }
 
 const parsers = {
