@@ -325,17 +325,33 @@ function buildFooter() {
 // ─────────────────────────────────────────────
 // FUNCIÓN PRINCIPAL — GENERA EL .docx
 // ─────────────────────────────────────────────
+// Fecha de firma del contrato (AAAA-MM-DD o DD/MM/AAAA). Los plazos del Programa corren desde la firma;
+// el kit se genera al recibir el formulario, antes de la firma, así que sin fecha las fechas quedan por definir.
+function parseFirma(v) {
+  if (!v) return null;
+  const t = String(v).trim();
+  let m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(t);
+  if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+  return null;
+}
+const SIN_FIRMA = 'A partir de la firma del contrato';
+const POR_DEFINIR = (w) => `Semana ${w} tras la firma`;
+
 async function generarCronograma(empresa, rfc, opts = {}) {
-  const hoy = new Date();
+  const firma = opts.firma || null;
+  const hoy = firma || new Date();
   const fmt = (d) => d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
   const fmtLargo = (d) => d.toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
  
   const s = (weeks) => { const d = new Date(hoy); d.setDate(d.getDate() + weeks * 7); return d; };
+  const fw = (weeks) => (firma ? fmt(s(weeks)) : POR_DEFINIR(weeks));
  
   const fases = [
     {
       titulo: 'SEMANA 1 — Documentos Fundacionales',
-      fecha: fmt(s(1)),
+      fecha: fw(1),
       objetivo: 'Partir del diagnóstico de brechas para establecer la base legal y designar al Representante de Cumplimiento',
       docs: [
         { id: 'D4', nombre: 'Gap Analysis PLD', descripcion: 'Punto de partida: análisis de brechas normativas de la empresa' },
@@ -349,7 +365,7 @@ async function generarCronograma(empresa, rfc, opts = {}) {
     },
     {
       titulo: 'SEMANA 2 — Análisis y Procedimientos',
-      fecha: fmt(s(2)),
+      fecha: fw(2),
       objetivo: 'Establecer los procedimientos y la metodología de riesgo a partir de las brechas identificadas',
       docs: [
         { id: 'D5', nombre: 'Manual de Cumplimiento PLD/FT', descripcion: 'Procedimientos y políticas de cumplimiento' },
@@ -358,7 +374,7 @@ async function generarCronograma(empresa, rfc, opts = {}) {
     },
     {
       titulo: 'SEMANA 3 — Conocimiento del Cliente (KYC)',
-      fecha: fmt(s(3)),
+      fecha: fw(3),
       objetivo: 'Implementar procesos de identificación, monitoreo y reporte',
       docs: [
         { id: 'D7', nombre: 'Expediente KYC', descripcion: 'Procesos de identificación de clientes' },
@@ -369,7 +385,7 @@ async function generarCronograma(empresa, rfc, opts = {}) {
     },
     {
       titulo: 'SEMANA 4 — Capacitación y Control',
-      fecha: fmt(s(4)),
+      fecha: fw(4),
       objetivo: 'Capacitar al personal y establecer controles operativos',
       docs: [
         { id: 'D11',  nombre: 'Programa Anual de Capacitación', descripcion: 'Plan de capacitación del personal' },
@@ -380,7 +396,7 @@ async function generarCronograma(empresa, rfc, opts = {}) {
     },
     {
       titulo: 'SEMANA 8 — Auditoría y Cierre',
-      fecha: fmt(s(8)),
+      fecha: fw(8),
       objetivo: 'Validar la implementación completa y generar informe final',
       docs: [
         { id: 'D13', nombre: 'Informe de Auditoría PLD', descripcion: 'Validación de implementación y hallazgos' },
@@ -408,7 +424,7 @@ async function generarCronograma(empresa, rfc, opts = {}) {
   const children = [];
  
   // Header
-  children.push(buildHeader(empresa, rfc, fmtLargo(hoy)));
+  children.push(buildHeader(empresa, rfc, firma ? fmtLargo(firma) : SIN_FIRMA));
   children.push(spacer(14));
  
   // Fases
@@ -663,9 +679,12 @@ async function main() {
     const esCronogramaPropio = (a) => /^CRONOGRAMA-/i.test(a);
     const tieneCronogramaPropio = archivos.some(esCronogramaPropio);
     const fmtFecha = (d) => d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
-    const sumaSemanas = (w) => { const d = new Date(hoy); d.setDate(d.getDate() + w * 7); return d; };
+    const firma = parseFirma(datosFormulario['FechaFirma']);
+    const sumaSemanas = (w) => { const d = new Date(firma); d.setDate(d.getDate() + w * 7); return d; };
     const personalizarCronograma = (xml) => {
-      const fechas = [hoy, sumaSemanas(1), sumaSemanas(2), sumaSemanas(3), sumaSemanas(4), sumaSemanas(8)].map(fmtFecha);
+      const fechas = firma
+        ? [firma, sumaSemanas(1), sumaSemanas(2), sumaSemanas(3), sumaSemanas(4), sumaSemanas(8)].map(fmtFecha)
+        : [SIN_FIRMA, POR_DEFINIR(1), POR_DEFINIR(2), POR_DEFINIR(3), POR_DEFINIR(4), POR_DEFINIR(8)];
       const letras = (datosFormulario['Incisos'] || '').toString().split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
       const titular = repLegal || empresa;
       let idx = 0;
@@ -727,7 +746,7 @@ async function main() {
     let nombreCronograma = null;
     if (!tieneCronogramaPropio) {
       console.log(`\n📅 Generando cronograma...\n`);
-      cronogramaBuffer = await generarCronograma(empresa, rfc, { tipo, tipoPersona });
+      cronogramaBuffer = await generarCronograma(empresa, rfc, { tipo, tipoPersona, firma: parseFirma(datosFormulario['FechaFirma']) });
       nombreCronograma = `CRONOGRAMA_${empresa.replace(/\s/g, '_')}_${Date.now()}.docx`;
       fs.writeFileSync(nombreCronograma, cronogramaBuffer);
       console.log(`✓ Cronograma creado: ${nombreCronograma}\n`);
