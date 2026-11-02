@@ -193,6 +193,21 @@ app.post('/api/generar-documentos', auth, async (req, res) => {
   }
 });
 
+// ===== CONSULTA DE LISTAS (KYC de Certus) =====
+const listas = require('./listas');
+app.post('/api/consultar-listas', auth, async (req, res) => {
+  try {
+    const r = await listas.consultar(req.body || {});
+    res.json(Object.assign({ success: true }, r));
+  } catch (err) {
+    console.error('Consulta de listas:', err);
+    res.status(500).json({ success: false, error: String(err.message || err) });
+  }
+});
+app.get('/api/listas/estado', auth, (req, res) => {
+  res.json(Object.keys(listas.FUENTES).map(id => Object.assign({ id, nombre: listas.FUENTES[id].nombre }, listas.estado[id] || {}, { cargando: undefined })));
+});
+
 // ===== DESCARGAR =====
 app.get('/descargar/:archivo', (req, res) => {
   const archivo = path.basename(req.params.archivo);
@@ -207,6 +222,7 @@ app.get('/descargar/:archivo', (req, res) => {
 
 // ===== INICIAR =====
 app.listen(PORT, () => {
+  setTimeout(() => listas.asegurar().then(() => console.log('📋 Listas cargadas:', JSON.stringify(Object.keys(listas.estado).map(k => k + '=' + (listas.estado[k].registros || 0) + (listas.estado[k].error ? ' (' + listas.estado[k].error + ')' : ''))))).catch(e => console.error('Listas:', e.message)), 2000);
   console.log(`\n${'═'.repeat(60)}`);
   console.log(`🚀 CERTUS PLD — SERVIDOR DE AUTOMATIZACIÓN`);
   console.log(`${'═'.repeat(60)}`);
