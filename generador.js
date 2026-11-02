@@ -566,6 +566,7 @@ async function main() {
       '[FECHA]': fechaCorta,
       '[Fecha]': fechaCorta,
       '[FECHACOMPLETA]': fechaLarga,
+      '[Ciudad, Fecha]': `${ciudad}, ${fechaLarga}`,
       '[ACTIVIDADES]': actividades,
       '[VERSION]': '1.0'
     };
@@ -601,8 +602,7 @@ async function main() {
         '[Nombre completo del profesional o denominación del despacho]': empresa,
         '[Nombre del profesional / representante del despacho]': repLegal || empresa,
         '[Nombre completo]': empresa,
-        '[Nombre del profesional]': empresa,
-        '[Ciudad, Fecha]': `${ciudad}, ${fechaLarga}`
+        '[Nombre del profesional]': empresa
       });
       if (tipoPersona) {
         reemplazos['[Persona física — profesional independiente  /  Persona moral — despacho]'] =
