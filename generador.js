@@ -586,6 +586,14 @@ async function main() {
       '[ACTIVIDADES]': actividades,
       '[VERSION]': '1.0'
     };
+    // Consultor que firma: el evaluador del diagnóstico D4 (por defecto, el titular de Certus)
+    const CONSULTOR_BASE = 'José Luis Naranjo Bobadilla';
+    const consultor = String(datosFormulario.Consultor || '').trim();
+    if (consultor && consultor !== CONSULTOR_BASE) {
+      const sinTitulo = consultor.replace(/^(?:Lic(?:da)?\.|Mtr[oa]\.|Dr[a]?\.|C\.P\.|Ing\.)\s*/i, '');
+      reemplazos['Lic. ' + CONSULTOR_BASE] = consultor;
+      reemplazos[CONSULTOR_BASE] = sinTitulo;
+    }
     if (rc) {
       Object.assign(reemplazos, {
         '[RC_Nombre]': rc, '[NOMBRE RC]': rc,
