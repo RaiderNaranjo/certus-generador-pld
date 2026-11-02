@@ -93,7 +93,8 @@ app.post('/api/generar-documentos', auth, async (req, res) => {
       'LineasExcluidas': cliente.LineasExcluidas || '',
       'EncargadoOperativo': cliente.EncargadoOperativo || '',
       'Telefono': cliente.TelefonoRL || '',
-      'FechaFirma': cliente.FechaFirma || req.body.fechaFirma || ''
+      'FechaFirma': cliente.FechaFirma || req.body.fechaFirma || '',
+      'Consultor': cliente.Consultor || req.body.consultor || ''
     }));
 
     // Ejecutar generador.js
