@@ -666,12 +666,46 @@ async function main() {
       }
     }
 
+    // Variantes persona física / persona moral (kit profesionistas). En las plantillas, el texto
+    // que solo aplica a PF va como "[PF: …]" con el estilo de carácter "Variante PF" y el de PM como
+    // "[PM: …]" con "Variante PM"; la "Nota Certus" es una nota de edición. Si se conoce el
+    // TipoPersona, se elimina la variante que no aplica y la nota, y se quitan etiquetas y estilo
+    // de la que se conserva. Sin TipoPersona, el documento se entrega con ambas variantes marcadas.
+    const ESTILOS_VARIANTE = /w:val="(?:VariantePF|VariantePM|NotaCertus)"/;
+    const resolverVariantesPersona = (xml, tp) => {
+      if (!tp || !ESTILOS_VARIANTE.test(xml)) return xml;
+      const conservar = tp === 'PF' ? 'VariantePF' : 'VariantePM';
+      const quitar = tp === 'PF' ? 'VariantePM' : 'VariantePF';
+      const etiqueta = tp === 'PF' ? '[PF: ' : '[PM: ';
+      const tieneEstilo = (frag, est) => frag.includes(`<w:rStyle w:val="${est}"/>`);
+      // 1) Párrafos completos de la variante que no aplica (o la nota): se elimina el párrafo
+      xml = xml.replace(/<w:p(?:\s[^>]*[^/])?>[\s\S]*?<\/w:p>/g, (p) => {
+        const ppr = /^<w:p(?:\s[^>]*)?>\s*<w:pPr>([\s\S]*?)<\/w:pPr>/.exec(p);
+        const rprPar = ppr ? (/<w:rPr>[\s\S]*?<\/w:rPr>/.exec(ppr[1]) || [''])[0] : '';
+        if (tieneEstilo(rprPar, quitar) || tieneEstilo(rprPar, 'NotaCertus')) return '';
+        return p;
+      });
+      // 2) Runs: se eliminan los de la variante que no aplica; en los que se conservan se quita
+      //    la etiqueta, el corchete de cierre y el estilo
+      xml = xml.replace(/<w:r(?:\s[^>]*)?>[\s\S]*?<\/w:r>/g, (r) => {
+        if (tieneEstilo(r, quitar) || tieneEstilo(r, 'NotaCertus')) return '';
+        if (!tieneEstilo(r, conservar)) return r;
+        return r.replace(`<w:rStyle w:val="${conservar}"/>`, '')
+          .replace(/(<w:t(?:\s[^>]*)?>)([^<]*)(<\/w:t>)/g, (m, a, t, c) =>
+            a + t.split(etiqueta).join('').split(']').join('') + c);
+      });
+      // 3) Marca de párrafo con el estilo conservado
+      return xml.split(`<w:rStyle w:val="${conservar}"/>`).join('').replace(/<w:rPr><\/w:rPr>/g, '');
+    };
+
     // Reemplazo a nivel de párrafo: cubre marcadores partidos en varios runs
     const reemplazarEnParrafos = (xml) => xml.replace(/<w:p[ >][\s\S]*?<\/w:p>/g, (p) => {
       const ts = [...p.matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g)];
       if (ts.length < 2) return p;
       const texto = ts.map(m => m[1]).join('');
       if (!texto.includes('[')) return p;
+      // Párrafos con variantes PF/PM sin resolver: no se fusionan los runs (perderían el marcado)
+      if (ESTILOS_VARIANTE.test(p)) return p;
       let nuevo = texto;
       for (const [ph, val] of Object.entries(reemplazos)) {
         const phx = ph.replace(/&/g, '&amp;');
@@ -737,6 +771,7 @@ async function main() {
 
       for (const parte of Object.keys(zip.files).filter(n => /^word\/(document|header\d*|footer\d*)\.xml$/.test(n))) {
         let xml = await zip.file(parte).async('string');
+        if (tipo === 'profesionistas') xml = resolverVariantesPersona(xml, tipoPersona);
         if (esCronogramaPropio(archivo) && parte === 'word/document.xml') xml = personalizarCronograma(xml);
         for (const [placeholder, valor] of Object.entries(reemplazos)) {
           xml = xml.split(placeholder).join(String(valor).replace(/&/g, '&amp;').replace(/</g, '&lt;'));
