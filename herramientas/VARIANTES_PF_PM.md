@@ -1,6 +1,6 @@
-# Variantes persona física / persona moral (kit profesionistas)
+# Variantes persona física / persona moral (kits profesionistas e inmobiliarias)
 
-Las plantillas de `plantillas/profesionistas` están redactadas para persona física (PF) y marcan lo que cambia para persona moral (PM):
+Las plantillas de `plantillas/profesionistas` y `plantillas/inmobiliaria` están redactadas para persona física (PF) y marcan lo que cambia para persona moral (PM):
 
 | Marca | Estilo de carácter | Se ve |
 |---|---|---|
@@ -11,7 +11,7 @@ Las plantillas de `plantillas/profesionistas` están redactadas para persona fí
 El texto sin marca aplica a ambos.
 
 ## En el generador
-`generador.js` lee `TipoPersona` (PF/PM). Si viene, elimina la variante que no aplica y la nota, y quita etiquetas y sombreado de la que se conserva. Si no viene, entrega los documentos con ambas variantes marcadas para editarlos a mano.
+`generador.js` lee `TipoPersona` (PF/PM) en profesionistas e inmobiliarias. Si viene, entrega solo el D2 que corresponde (constancia de asunción personal para PF; acta de designación del Representante para PM), elimina la variante que no aplica y la nota, y quita etiquetas y sombreado de la que se conserva. Si no viene, entrega los documentos con ambas variantes marcadas para editarlos a mano.
 
 ## En Word
 Importar `CertusVariantes.bas` (Alt+F11 > Archivo > Importar) y ejecutar `ResolverComoPF` o `ResolverComoPM`.

@@ -352,13 +352,15 @@ async function generarCronograma(empresa, rfc, opts = {}) {
     {
       titulo: 'SEMANA 1 — Documentos Fundacionales',
       fecha: fw(1),
-      objetivo: 'Partir del diagnóstico de brechas para establecer la base legal y designar al Representante de Cumplimiento',
+      objetivo: opts.tipoPersona === 'PF'
+        ? 'Partir del diagnóstico de brechas para establecer la base legal y formalizar la asunción personal del cumplimiento'
+        : 'Partir del diagnóstico de brechas para establecer la base legal y designar al Representante de Cumplimiento',
       docs: [
         { id: 'D4', nombre: 'Gap Analysis PLD', descripcion: 'Punto de partida: análisis de brechas normativas de la empresa' },
         { id: 'D0', nombre: 'Carta de Recomendaciones Urgentes', descripcion: 'Comunicado inicial, elaborado con los hallazgos del Gap Analysis, con recomendaciones críticas de cumplimiento' },
         { id: 'D1', nombre: 'Dictamen de Sujeción Normativa', descripcion: 'Evaluación legal de la obligación LFPIORPI' },
         opts.tipoPersona === 'PF'
-          ? { id: 'D2', nombre: 'Constancia de Asunción Personal', descripcion: 'El profesional asume personal y directamente el cumplimiento (art. 20 LFPIORPI)' }
+          ? { id: 'D2', nombre: 'Constancia de Asunción Personal', descripcion: (opts.tipo === 'profesionistas' ? 'El profesional' : 'La persona física titular') + ' asume personal y directamente el cumplimiento (art. 20 LFPIORPI)' }
           : { id: 'D2', nombre: 'Acta de Designación del RC', descripcion: 'Documento de formalización del Representante de Cumplimiento' },
         { id: 'D3', nombre: 'Expediente de Registro SPPLD', descripcion: 'Documentos para registrar ante el SAT' },
       ]
@@ -406,7 +408,9 @@ async function generarCronograma(empresa, rfc, opts = {}) {
  
   const observaciones = [
     'Todos los documentos son personalizados para la empresa cliente',
-    'El Representante de Cumplimiento debe estar disponible para las capacitaciones',
+    opts.tipoPersona === 'PF'
+      ? 'La persona física titular cumple personal y directamente (art. 20) y debe estar disponible para las capacitaciones'
+      : 'El Representante de Cumplimiento debe estar disponible para las capacitaciones',
     'Se requieren 2–4 horas semanales de dedicación interna del cliente',
     'Las reuniones de seguimiento se recomiendan cada dos semanas',
     'El cliente debe completar el registro en SPPLD antes de la Semana 2',
@@ -511,7 +515,7 @@ async function main() {
       console.error(`❌ Tipo inválido: ${tipo} (use inmobiliaria, notarial, profesionistas o corredores)`);
       process.exit(1);
     }
-    // Persona física (profesional independiente) o moral (despacho) — solo aplica a profesionistas
+    // Persona física o moral — aplica a profesionistas e inmobiliarias (variantes PF/PM y documento D2)
     const tpRaw = (datosFormulario['TipoPersona'] || '').toString().trim().toLowerCase();
     const tipoPersona = /^(pf|fisica|física|persona f)/.test(tpRaw) ? 'PF' : (/^(pm|moral|persona m|despacho)/.test(tpRaw) ? 'PM' : '');
     const dirPlantillas = path.join(__dirname, 'plantillas', tipo);
@@ -534,9 +538,14 @@ async function main() {
     const seleccion = new Set(Object.values(vigentes).map(v => v.f));
     archivos.splice(0, archivos.length, ...archivos.filter(f => seleccion.has(f)));
 
-    // Profesionistas: solo el documento D2 que corresponde al tipo de sujeto obligado
-    if (tipo === 'profesionistas' && tipoPersona) {
-      const excluir = tipoPersona === 'PF' ? 'D2-PROF-PM' : 'D2-PROF-PF';
+    // Profesionistas e inmobiliarias: solo el documento D2 que corresponde al tipo de sujeto obligado
+    // (constancia de asunción personal para PF; acta de designación del Representante para PM)
+    const D2_POR_TIPO = {
+      profesionistas: { PF: 'D2-PROF-PF', PM: 'D2-PROF-PM' },
+      inmobiliaria: { PF: 'D2-PF_', PM: 'D2_Acta_Designacion' }
+    };
+    if (D2_POR_TIPO[tipo] && tipoPersona) {
+      const excluir = D2_POR_TIPO[tipo][tipoPersona === 'PF' ? 'PM' : 'PF'];
       archivos.splice(0, archivos.length, ...archivos.filter(f => !f.startsWith(excluir)));
     }
 
@@ -771,7 +780,7 @@ async function main() {
 
       for (const parte of Object.keys(zip.files).filter(n => /^word\/(document|header\d*|footer\d*)\.xml$/.test(n))) {
         let xml = await zip.file(parte).async('string');
-        if (tipo === 'profesionistas') xml = resolverVariantesPersona(xml, tipoPersona);
+        if (tipo === 'profesionistas' || tipo === 'inmobiliaria') xml = resolverVariantesPersona(xml, tipoPersona);
         if (esCronogramaPropio(archivo) && parte === 'word/document.xml') xml = personalizarCronograma(xml);
         for (const [placeholder, valor] of Object.entries(reemplazos)) {
           xml = xml.split(placeholder).join(String(valor).replace(/&/g, '&amp;').replace(/</g, '&lt;'));
