@@ -193,6 +193,40 @@ app.post('/api/generar-documentos', auth, async (req, res) => {
   }
 });
 
+// ===== PRE-DIAGNÓSTICO PARA EL CLIENTE (PDF) =====
+// Body: { cliente, perfil, respuestas }  — lo envía Make tal cual lo armó el intake (campo prediagnosticoJSON)
+const prediagnostico = require('./prediagnostico');
+app.post('/api/prediagnostico', auth, async (req, res) => {
+  try {
+    let datos = req.body || {};
+    if (typeof datos.prediagnosticoJSON === 'string') datos = JSON.parse(datos.prediagnosticoJSON);
+    const cliente = datos.cliente || {};
+    if (!cliente.La_Empresa || !cliente.RFC || !datos.respuestas) {
+      return res.status(400).json({ success: false, error: 'Faltan datos: cliente.La_Empresa, cliente.RFC y respuestas' });
+    }
+    const { resultado, buffer } = await prediagnostico.generarPDF(datos);
+    const nombre = `Prediagnostico_PLD_${limpiar(cliente.RFC)}_${Date.now()}.pdf`;
+    fs.writeFileSync(path.join(__dirname, 'outputs', nombre), buffer);
+    const baseURL = process.env.BASE_URL || 'https://certus-generador-pld-production.up.railway.app';
+    console.log(`📄 Pre-diagnóstico ${resultado.folio}: ${resultado.indice}/100 (${resultado.nivel})`);
+    res.json({
+      success: true,
+      resultado: {
+        folio: resultado.folio, indice: resultado.indice, nivel: resultado.nivel,
+        inherente: resultado.inherente, noSe: resultado.noSe,
+        bloques: resultado.bloques, pendientes: resultado.pendientes
+      },
+      correo: prediagnostico.correoCliente(datos, resultado),
+      pdfNombre: nombre,
+      pdfUrl: `${baseURL}/descargar/${nombre}`,
+      pdfBase64: buffer.toString('base64')
+    });
+  } catch (err) {
+    console.error('Pre-diagnóstico:', err);
+    res.status(500).json({ success: false, error: String(err.message || err) });
+  }
+});
+
 // ===== CONSULTA DE LISTAS (KYC de Certus) =====
 const listas = require('./listas');
 app.post('/api/consultar-listas', auth, async (req, res) => {
