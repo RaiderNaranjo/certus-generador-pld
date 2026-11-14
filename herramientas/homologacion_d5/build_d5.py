@@ -152,6 +152,7 @@ regla(r'desarrollado por Certus Consultores a través', 'desarrollado por Certus
 regla(r'Certus Consultores, a través del Programa Certus PLD, notificará', 'Certus Consultores y Espinosa-Salazar Abogados Corporativos, a través del Programa Certus PLD, notificarán')
 regla(r'con el apoyo de Certus Consultores(?! y)', 'con el apoyo de Certus Consultores y Espinosa-Salazar Abogados Corporativos')
 regla(r'edición octubre 2026', 'edición noviembre 2026')
+regla(r'Sección A\.3 del expediente KYC', 'Sección A.4 del expediente KYC')
 regla(r'con las ponderaciones del Documento D6 \(A ×1\.5; B ×1\.25; C ×1\.0; D ×1\.0\)', 'con igual ponderación para los cuatro elementos')
 regla(r'^×1\.(?:5|25)$', '×1.0')
 regla(r'puntuación (?:ponderada )?de (?:6 a 9 puntos|9\.00 a 15\.00)', 'puntuación de 7 a 11 puntos')

@@ -326,6 +326,10 @@ def normalizar_tabla(tbl, proc_par, encabezado=None):
                 if e.tag not in (q('w:tblHeader'), q('w:cantSplit')):
                     trpr.remove(e)
         hdr = encabezado and ri == 0
+        if trpr is None:
+            trpr = etree.Element(q('w:trPr')); tr.insert(0, trpr)
+        if trpr.find(q('w:cantSplit')) is None:
+            trpr.insert(0, etree.Element(q('w:cantSplit')))
         if hdr:
             if trpr is None:
                 trpr = etree.Element(q('w:trPr')); tr.insert(0, trpr)

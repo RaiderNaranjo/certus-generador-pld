@@ -79,6 +79,7 @@ Fuera de los cuatro manuales: los capítulos de Sanciones y de Calendario del Ac
 - Misma portada, estilos, citas, términos y marca que el D5.
 - Divisiones en `Sección I: Título (ancla legal)` en lugar de capítulos; los subtítulos internos van en negritas.
 - **D6 — Metodología EBR (homologado):** 4 elementos (art. 10 Septies 1 RCG) y 7 indicadores: A1 tipo de acto, A2 monto, A3 origen y destino de los recursos, B1 perfil, B2 PEP, C1 geografía, D1 canal. Cada indicador vale de 1 a 3; la puntuación es la **suma de 7 a 21** y todos los elementos pesan igual. Bajo: 7–11; medio: 12–16; alto: 17–21. Secciones I a XI idénticas en los cuatro kits; solo cambian las descripciones de A1, A2, A3, C1, D1, el indicador FT/LD del elemento A y la nota sobre los Avisos.
+- **D7 — Expediente KYC (homologado):** secciones A a J iguales en los cuatro kits. A: identificación del cliente (A.1 PF, A.2 PM, A.3 fideicomiso; A.4 solicitante material, solo NOT y COR). B: identificación oficial y cotejo. C: origen y destino de los recursos. D: EBR (/21). E: Beneficiario Controlador. F: PEP. G: Perfil Transaccional. H: listas de autoridades. I: acto u operación del sector (I.1… por inciso). J: documentos y validación. Formularios en tablas de dos columnas (etiqueta en negritas | campo); sin variantes PF/PM dentro de tablas.
 - La evaluación del sujeto obligado (D5, sección 5.1) usa los mismos cuatro elementos, con igual ponderación.
 
 ## 7. Cómo se regeneran
