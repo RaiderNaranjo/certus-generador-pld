@@ -147,10 +147,10 @@ function correoCliente(datos, r) {
 <p style="background:#1F3864;color:#ffffff;padding:12px 16px;"><strong style="color:#F1C38C;">Siguiente paso:</strong> en los próximos días nos comunicaremos con usted para conocer su opinión sobre este resultado y acordar la fecha de su sesión de diagnóstico completo.</p>
 ${boton}
 <p style="font-size:14px;">Si los tiene a la mano, le pedimos preparar: acuse de alta en el SPPLD, designación del Representante de Cumplimiento, manual vigente, acuses de Avisos de los últimos 12 meses y dos expedientes de clientes.</p>
-<p>Si desea adelantarse, agregar información o tiene alguna duda, puede responder a este correo, escribirnos a <a href="mailto:contacto@certusconsultores.com.mx">contacto@certusconsultores.com.mx</a> o a <a href="mailto:contacto@espinosasalazarabogados.com">contacto@espinosasalazarabogados.com</a>, o llamar al Lic. Alfredo Espinosa Corona al <a href="tel:+529995753129">999 575 3129</a> (celular).</p>
+<p>Si desea adelantarse, agregar información o tiene alguna duda, puede responder a este correo, escribirnos a <a href="mailto:contacto@certusconsultores.com.mx">contacto@certusconsultores.com.mx</a> o a <a href="mailto:contacto@espinosasalazarabogados.com">contacto@espinosasalazarabogados.com</a>, o llamar al Lic. José Luis Naranjo Bobadilla al <a href="tel:+529991631363">999 163 1363</a> o al Lic. Alfredo Espinosa Corona al <a href="tel:+529995753129">999 575 3129</a> (celular).</p>
 <p>La información que nos proporcione será utilizada exclusivamente con el propósito de brindar por nuestra parte el servicio que se nos requiere y bajo los lineamientos de las Leyes Mexicanas de la materia. Puede consultar nuestro Aviso de Privacidad en la siguiente liga: <a href="https://certusconsultores.com.mx/aviso-de-privacidad/">Aviso de Privacidad</a>.</p>
 <p>Atentamente,</p>
-<p><strong>Certus Consultores</strong><br>Cumplimiento normativo PLD/FT<br>Mérida, Yucatán · Tel. 999 163 1363</p>
+<p><strong>Certus Consultores</strong><br>Lic. José Luis Naranjo Bobadilla · Tel. 999 163 1363<br>Cumplimiento normativo PLD/FT · Mérida, Yucatán</p>
 <p><strong>Espinosa-Salazar Abogados Corporativos</strong><br>Lic. Alfredo Espinosa Corona · Cel. 999 575 3129</p>
 </div>
 <div style="background:#f3f1ed;padding:12px 24px;font-size:11px;color:#5a5650;line-height:1.5;">
@@ -249,7 +249,7 @@ function generarPDF(datos) {
         'en los próximos días nos comunicaremos con usted para conocer su opinión sobre este resultado y acordar la fecha de su sesión. ',
         agenda ? { text: ['Si lo prefiere, agéndela aquí: ', { text: agenda, link: agenda, decoration: 'underline' }, '. '] } : '',
         { text: '\nSi desea adelantarse: ', bold: true, color: '#F1C38C' },
-        'contacto@certusconsultores.com.mx · Tel. 999 163 1363 · Lic. Alfredo Espinosa Corona, cel. 999 575 3129'
+        'contacto@certusconsultores.com.mx · Lic. José Luis Naranjo Bobadilla, tel. 999 163 1363 · Lic. Alfredo Espinosa Corona, cel. 999 575 3129'
       ], color: '#FFFFFF', fontSize: 10, margin: [8, 8, 8, 8] }]] },
       layout: { hLineWidth: () => 0, vLineWidth: () => 0, fillColor: () => NAVY }
     },
