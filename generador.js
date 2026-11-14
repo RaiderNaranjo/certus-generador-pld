@@ -352,13 +352,15 @@ async function generarCronograma(empresa, rfc, opts = {}) {
     {
       titulo: 'SEMANA 1 — Documentos Fundacionales',
       fecha: fw(1),
-      objetivo: 'Partir del diagnóstico de brechas para establecer la base legal y designar al Representante de Cumplimiento',
+      objetivo: opts.tipoPersona === 'PF'
+        ? 'Partir del diagnóstico de brechas para establecer la base legal y formalizar la asunción personal del cumplimiento'
+        : 'Partir del diagnóstico de brechas para establecer la base legal y designar al Representante de Cumplimiento',
       docs: [
         { id: 'D4', nombre: 'Gap Analysis PLD', descripcion: 'Punto de partida: análisis de brechas normativas de la empresa' },
         { id: 'D0', nombre: 'Carta de Recomendaciones Urgentes', descripcion: 'Comunicado inicial, elaborado con los hallazgos del Gap Analysis, con recomendaciones críticas de cumplimiento' },
         { id: 'D1', nombre: 'Dictamen de Sujeción Normativa', descripcion: 'Evaluación legal de la obligación LFPIORPI' },
         opts.tipoPersona === 'PF'
-          ? { id: 'D2', nombre: 'Constancia de Asunción Personal', descripcion: 'El profesional asume personal y directamente el cumplimiento (art. 20 LFPIORPI)' }
+          ? { id: 'D2', nombre: 'Constancia de Asunción Personal', descripcion: (opts.tipo === 'profesionistas' ? 'El profesional' : 'La persona física titular') + ' asume personal y directamente el cumplimiento (art. 20 LFPIORPI)' }
           : { id: 'D2', nombre: 'Acta de Designación del RC', descripcion: 'Documento de formalización del Representante de Cumplimiento' },
         { id: 'D3', nombre: 'Expediente de Registro SPPLD', descripcion: 'Documentos para registrar ante el SAT' },
       ]
@@ -368,7 +370,7 @@ async function generarCronograma(empresa, rfc, opts = {}) {
       fecha: fw(2),
       objetivo: 'Establecer los procedimientos y la metodología de riesgo a partir de las brechas identificadas',
       docs: [
-        { id: 'D5', nombre: 'Manual de Cumplimiento PLD/FT', descripcion: 'Procedimientos y políticas de cumplimiento' },
+        { id: 'D5', nombre: 'Manual de Políticas Internas PLD/FT', descripcion: 'Políticas, criterios y procedimientos internos (Capítulo X RCG)' },
         { id: 'D6', nombre: 'Metodología EBR', descripcion: 'Sistema de Enfoque Basado en Riesgo del cliente' },
       ]
     },
@@ -406,7 +408,9 @@ async function generarCronograma(empresa, rfc, opts = {}) {
  
   const observaciones = [
     'Todos los documentos son personalizados para la empresa cliente',
-    'El Representante de Cumplimiento debe estar disponible para las capacitaciones',
+    opts.tipoPersona === 'PF'
+      ? 'La persona física titular cumple personal y directamente (art. 20) y debe estar disponible para las capacitaciones'
+      : 'El Representante de Cumplimiento debe estar disponible para las capacitaciones',
     'Se requieren 2–4 horas semanales de dedicación interna del cliente',
     'Las reuniones de seguimiento se recomiendan cada dos semanas',
     'El cliente debe completar el registro en SPPLD antes de la Semana 2',
@@ -511,7 +515,7 @@ async function main() {
       console.error(`❌ Tipo inválido: ${tipo} (use inmobiliaria, notarial, profesionistas o corredores)`);
       process.exit(1);
     }
-    // Persona física (profesional independiente) o moral (despacho) — solo aplica a profesionistas
+    // Persona física o moral — aplica a profesionistas e inmobiliarias (variantes PF/PM y documento D2)
     const tpRaw = (datosFormulario['TipoPersona'] || '').toString().trim().toLowerCase();
     const tipoPersona = /^(pf|fisica|física|persona f)/.test(tpRaw) ? 'PF' : (/^(pm|moral|persona m|despacho)/.test(tpRaw) ? 'PM' : '');
     const dirPlantillas = path.join(__dirname, 'plantillas', tipo);
@@ -534,9 +538,14 @@ async function main() {
     const seleccion = new Set(Object.values(vigentes).map(v => v.f));
     archivos.splice(0, archivos.length, ...archivos.filter(f => seleccion.has(f)));
 
-    // Profesionistas: solo el documento D2 que corresponde al tipo de sujeto obligado
-    if (tipo === 'profesionistas' && tipoPersona) {
-      const excluir = tipoPersona === 'PF' ? 'D2-PROF-PM' : 'D2-PROF-PF';
+    // Profesionistas e inmobiliarias: solo el documento D2 que corresponde al tipo de sujeto obligado
+    // (constancia de asunción personal para PF; acta de designación del Representante para PM)
+    const D2_POR_TIPO = {
+      profesionistas: { PF: 'D2-PROF-PF', PM: 'D2-PROF-PM' },
+      inmobiliaria: { PF: 'D2-PF_', PM: 'D2_Acta_Designacion' }
+    };
+    if (D2_POR_TIPO[tipo] && tipoPersona) {
+      const excluir = D2_POR_TIPO[tipo][tipoPersona === 'PF' ? 'PM' : 'PF'];
       archivos.splice(0, archivos.length, ...archivos.filter(f => !f.startsWith(excluir)));
     }
 
@@ -655,6 +664,10 @@ async function main() {
         reemplazos['[INCISOS QUE LA CORREDURÍA NO FORMALIZA, O "NINGUNO"]'] = incNo;
       } else if (tipo === 'profesionistas') {
         reemplazos['[INCISOS QUE NO SE PRESTAN — a), b), c), d) y/o e)]'] = incNo;
+      } else if (tipo === 'inmobiliaria') {
+        // Exención del art. 37 Bis 2 RCG en el D5 inmobiliario (fracciones o supuestos no realizados)
+        reemplazos['[SUPUESTOS QUE LA EMPRESA NO REALIZA, O “NINGUNO”]'] = incNo;
+        reemplazos['[SUPUESTOS QUE LA EMPRESA NO REALIZA, O "NINGUNO"]'] = incNo;
       }
     }
     if (tipo === 'profesionistas') {
@@ -666,12 +679,46 @@ async function main() {
       }
     }
 
+    // Variantes persona física / persona moral (kit profesionistas). En las plantillas, el texto
+    // que solo aplica a PF va como "[PF: …]" con el estilo de carácter "Variante PF" y el de PM como
+    // "[PM: …]" con "Variante PM"; la "Nota Certus" es una nota de edición. Si se conoce el
+    // TipoPersona, se elimina la variante que no aplica y la nota, y se quitan etiquetas y estilo
+    // de la que se conserva. Sin TipoPersona, el documento se entrega con ambas variantes marcadas.
+    const ESTILOS_VARIANTE = /w:val="(?:VariantePF|VariantePM|NotaCertus)"/;
+    const resolverVariantesPersona = (xml, tp) => {
+      if (!tp || !ESTILOS_VARIANTE.test(xml)) return xml;
+      const conservar = tp === 'PF' ? 'VariantePF' : 'VariantePM';
+      const quitar = tp === 'PF' ? 'VariantePM' : 'VariantePF';
+      const etiqueta = tp === 'PF' ? '[PF: ' : '[PM: ';
+      const tieneEstilo = (frag, est) => frag.includes(`<w:rStyle w:val="${est}"/>`);
+      // 1) Párrafos completos de la variante que no aplica (o la nota): se elimina el párrafo
+      xml = xml.replace(/<w:p(?:\s[^>]*[^/])?>[\s\S]*?<\/w:p>/g, (p) => {
+        const ppr = /^<w:p(?:\s[^>]*)?>\s*<w:pPr>([\s\S]*?)<\/w:pPr>/.exec(p);
+        const rprPar = ppr ? (/<w:rPr>[\s\S]*?<\/w:rPr>/.exec(ppr[1]) || [''])[0] : '';
+        if (tieneEstilo(rprPar, quitar) || tieneEstilo(rprPar, 'NotaCertus')) return '';
+        return p;
+      });
+      // 2) Runs: se eliminan los de la variante que no aplica; en los que se conservan se quita
+      //    la etiqueta, el corchete de cierre y el estilo
+      xml = xml.replace(/<w:r(?:\s[^>]*)?>[\s\S]*?<\/w:r>/g, (r) => {
+        if (tieneEstilo(r, quitar) || tieneEstilo(r, 'NotaCertus')) return '';
+        if (!tieneEstilo(r, conservar)) return r;
+        return r.replace(`<w:rStyle w:val="${conservar}"/>`, '')
+          .replace(/(<w:t(?:\s[^>]*)?>)([^<]*)(<\/w:t>)/g, (m, a, t, c) =>
+            a + t.split(etiqueta).join('').split(']').join('') + c);
+      });
+      // 3) Marca de párrafo con el estilo conservado
+      return xml.split(`<w:rStyle w:val="${conservar}"/>`).join('').replace(/<w:rPr><\/w:rPr>/g, '');
+    };
+
     // Reemplazo a nivel de párrafo: cubre marcadores partidos en varios runs
     const reemplazarEnParrafos = (xml) => xml.replace(/<w:p[ >][\s\S]*?<\/w:p>/g, (p) => {
       const ts = [...p.matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g)];
       if (ts.length < 2) return p;
       const texto = ts.map(m => m[1]).join('');
       if (!texto.includes('[')) return p;
+      // Párrafos con variantes PF/PM sin resolver: no se fusionan los runs (perderían el marcado)
+      if (ESTILOS_VARIANTE.test(p)) return p;
       let nuevo = texto;
       for (const [ph, val] of Object.entries(reemplazos)) {
         const phx = ph.replace(/&/g, '&amp;');
@@ -737,6 +784,7 @@ async function main() {
 
       for (const parte of Object.keys(zip.files).filter(n => /^word\/(document|header\d*|footer\d*)\.xml$/.test(n))) {
         let xml = await zip.file(parte).async('string');
+        if (tipo === 'profesionistas' || tipo === 'inmobiliaria') xml = resolverVariantesPersona(xml, tipoPersona);
         if (esCronogramaPropio(archivo) && parte === 'word/document.xml') xml = personalizarCronograma(xml);
         for (const [placeholder, valor] of Object.entries(reemplazos)) {
           xml = xml.split(placeholder).join(String(valor).replace(/&/g, '&amp;').replace(/</g, '&lt;'));
