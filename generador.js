@@ -401,7 +401,7 @@ async function generarCronograma(empresa, rfc, opts = {}) {
       fecha: fw(8),
       objetivo: 'Validar la implementación completa y generar informe final',
       docs: [
-        { id: 'D13', nombre: 'Informe de Auditoría PLD', descripcion: 'Validación de implementación y hallazgos' },
+        { id: 'D13', nombre: 'Dictamen de Auditoría PLD/FT', descripcion: 'Formato del dictamen anual (art. 47 RCG) y revisión de cierre' },
       ]
     },
   ];
