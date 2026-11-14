@@ -82,7 +82,7 @@ def construir(kit):
            'siguiente a aquel en que se realizó el acto u operación que les da origen (art. 23 de la Ley), a través del Portal '
            'en Internet y en el formato oficial (art. 24 de la Ley; art. 24 RCG). Se presenta un Aviso por cada acto u '
            'operación que, individualmente o por acumulación, alcance el umbral o la condición de Aviso (art. 24 Bis 1 RCG). '
-           'Este documento desarrolla el %s, capítulo 8.' % D('5'))
+           'Este documento desarrolla el %s, capítulo 10.' % D('5'))
     tabla(ctx, [(d['col'], 'Acto u operación', 'Umbral de Aviso', 'Equivalente 2026')] + d['umbrales'],
           [1500, 4600, 2000, 1400])
     p(ctx, 'UMA 2026: $117.31. Los montos se actualizan cada año con la UMA vigente.')
