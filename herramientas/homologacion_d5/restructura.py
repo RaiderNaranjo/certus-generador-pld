@@ -126,3 +126,10 @@ class Doc:
         self.renumerar()
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         self.doc.save(dest)
+
+def _degradar(self, n, titulo):
+    """Convierte el encabezado de la sección n en subsección (CertusSeccion) con nuevo título."""
+    el = self.caps()[n - 1]
+    nuevo = escribir_par(Par.from_text(titulo), 'CertusSeccion')
+    el.addprevious(nuevo); self.body.remove(el)
+Doc.degradar = _degradar
