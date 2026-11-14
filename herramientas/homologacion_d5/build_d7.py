@@ -263,4 +263,5 @@ if __name__ == '__main__':
         cp.author = 'Certus Consultores · Espinosa-Salazar Abogados Corporativos'
         cp.subject = 'Programa Certus PLD — edición homologada noviembre 2026'
         dest = os.path.join(OUT, NOMBRES[k]); os.makedirs(os.path.dirname(dest), exist_ok=True)
+        from docxlib import numero_de_pagina; numero_de_pagina(doc)
         doc.save(dest); print(k, dest)

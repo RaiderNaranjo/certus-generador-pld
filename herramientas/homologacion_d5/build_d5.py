@@ -757,6 +757,7 @@ def guardar(ctx):
     cp.subject = 'Programa Certus PLD — edición homologada noviembre 2026'
     destino = os.path.join(OUT, NOMBRES[ctx.kit])
     os.makedirs(os.path.dirname(destino), exist_ok=True)
+    from docxlib import numero_de_pagina; numero_de_pagina(doc)
     doc.save(destino)
     return destino
 

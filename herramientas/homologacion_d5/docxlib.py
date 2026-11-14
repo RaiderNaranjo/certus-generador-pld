@@ -150,7 +150,7 @@ class Par:
     def strip(self):
         while self.chars and self.chars[0] in ' \t':
             self.chars.pop(0); self.props.pop(0)
-        while self.chars and self.chars[-1] in ' \t\n':
+        while self.chars and self.chars[-1] in ' \t\n\f':
             self.chars.pop(); self.props.pop()
 
 def leer_par(p):
@@ -192,7 +192,7 @@ def leer_par(p):
             elif ch.tag == q('w:tab'):
                 par.chars.append('\t'); par.props.append(props)
             elif ch.tag in (q('w:br'), q('w:cr')):
-                par.chars.append('\n'); par.props.append(props)
+                par.chars.append('\f' if ch.get(q('w:type')) == 'page' else '\n'); par.props.append(props)
             elif ch.tag == q('w:noBreakHyphen'):
                 par.chars.append('-'); par.props.append(props)
             elif ch.tag in (q('w:drawing'), q('w:pict'), q('w:fldChar'), q('w:instrText'), q('w:object')):
@@ -256,6 +256,8 @@ def escribir_par(par, estilo):
                 flush(); etree.SubElement(r, q('w:tab'))
             elif c == '\n':
                 flush(); etree.SubElement(r, q('w:br'))
+            elif c == '\f':
+                flush(); etree.SubElement(r, q('w:br')).set(q('w:type'), 'page')
             else:
                 buf += c
         flush()
@@ -422,3 +424,34 @@ def espaciar_tras_tablas(elementos):
                 (ps.addnext(sp) if ps is not None else ppr.insert(0, sp))
             if not sp.get(q('w:before')):
                 sp.set(q('w:before'), '140')
+
+
+def numero_de_pagina(doc):
+    """Agrega «Página X de Y» centrado al pie de página del documento (una sola vez)."""
+    for sec in doc.sections:
+        ftr = sec.footer._element
+        if ftr.find('.//' + q('w:instrText')) is not None or 'PAGE' in etree.tostring(ftr).decode():
+            continue
+        p = etree.SubElement(ftr, q('w:p'))
+        ppr = etree.SubElement(p, q('w:pPr'))
+        etree.SubElement(ppr, q('w:jc')).set(q('w:val'), 'center')
+        sp = etree.SubElement(ppr, q('w:spacing')); sp.set(q('w:before'), '0'); sp.set(q('w:after'), '0')
+        def run(texto=None, fld=None):
+            r = etree.SubElement(p, q('w:r'))
+            rpr = etree.SubElement(r, q('w:rPr'))
+            f = etree.SubElement(rpr, q('w:rFonts'))
+            for a in ('ascii', 'hAnsi', 'cs'):
+                f.set(q('w:' + a), 'Calibri')
+            etree.SubElement(rpr, q('w:color')).set(q('w:val'), '595959')
+            etree.SubElement(rpr, q('w:sz')).set(q('w:val'), '16')
+            if texto is not None:
+                t = etree.SubElement(r, q('w:t')); t.text = texto; t.set('{%s}space' % XML, 'preserve')
+            if fld == 'begin' or fld == 'end' or fld == 'separate':
+                etree.SubElement(r, q('w:fldChar')).set(q('w:fldCharType'), fld)
+            return r
+        def campo(nombre):
+            run(fld='begin')
+            r = run(); it = etree.SubElement(r, q('w:instrText')); it.text = ' %s ' % nombre
+            it.set('{%s}space' % XML, 'preserve')
+            run(fld='separate'); run('1'); run(fld='end')
+        run('Página '); campo('PAGE'); run(' de '); campo('NUMPAGES')
