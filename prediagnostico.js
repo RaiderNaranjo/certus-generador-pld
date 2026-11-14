@@ -131,8 +131,8 @@ function correoCliente(datos, r) {
   const nombre = esc(c.NombreRepresentanteLegal || 'cliente');
   const colores = { r: '#B3322B', a: '#D9822B', v: '#3F8F5A', g: '#6B7280' };
   const boton = agenda
-    ? `<p style="text-align:center;margin:22px 0;"><a href="${esc(agenda)}" style="background:#1F3864;color:#ffffff;text-decoration:none;padding:12px 26px;font-weight:bold;border-radius:4px;display:inline-block;">Agendar mi sesión de diagnóstico</a></p>`
-    : `<p style="background:#1F3864;color:#ffffff;padding:12px 16px;"><strong style="color:#F1C38C;">Para agendar:</strong> responda este correo con dos o tres horarios que le acomoden, o llámenos al 999 163 1363.</p>`;
+    ? `<p style="text-align:center;margin:18px 0;">Si lo prefiere, puede agendarla directamente:<br><a href="${esc(agenda)}" style="background:#1F3864;color:#ffffff;text-decoration:none;padding:12px 26px;font-weight:bold;border-radius:4px;display:inline-block;margin-top:8px;">Agendar mi sesión de diagnóstico</a></p>`
+    : '';
   const asunto = `Recibimos su información — Diagnóstico preliminar PLD/FT de ${c.La_Empresa || 'su empresa'}`;
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;color:#1F3864;">
 <div style="background:#1F3864;padding:18px 24px;border-bottom:3px solid #C9A84C;"><span style="color:#C9A84C;font-size:20px;letter-spacing:2px;font-weight:bold;">CERTUS</span> <span style="color:#ffffff;font-size:12px;letter-spacing:2px;">CONSULTORES</span><span style="color:#C9A84C;font-size:16px;padding:0 12px;">|</span><span style="color:#C9A84C;font-size:16px;letter-spacing:2px;font-weight:bold;">ESPINOSA-SALAZAR</span> <span style="color:#ffffff;font-size:12px;letter-spacing:2px;">ABOGADOS CORPORATIVOS</span></div>
@@ -144,13 +144,14 @@ function correoCliente(datos, r) {
 <td style="padding:14px 16px;font-size:34px;font-weight:bold;color:#1F3864;white-space:nowrap;">${r.indice}<span style="font-size:14px;color:#6B7280;"> /100</span></td>
 <td style="padding:14px 16px 14px 0;font-size:14px;">Exposición preliminar: <strong style="color:${colores[r.color]};">${esc(r.nivel)}</strong><br>Riesgo inherente de la actividad: <strong>${esc(r.inherente)}</strong></td></tr></table>
 <p>Este resultado es una primera lectura basada solo en lo que usted declaró. <strong>El diagnóstico completo se entrega en una sesión personal</strong>, presencial o por videollamada, de unos 45 minutos. En ella revisamos sus documentos, resolvemos las preguntas que quedaron pendientes y le presentamos la ruta para regularizarse.</p>
-<p><strong>Para continuar, es necesario que agende su sesión.</strong></p>
+<p style="background:#1F3864;color:#ffffff;padding:12px 16px;"><strong style="color:#F1C38C;">Siguiente paso:</strong> en los próximos días nos comunicaremos con usted para conocer su opinión sobre este resultado y acordar la fecha de su sesión de diagnóstico completo.</p>
 ${boton}
 <p style="font-size:14px;">Si los tiene a la mano, le pedimos preparar: acuse de alta en el SPPLD, designación del Representante de Cumplimiento, manual vigente, acuses de Avisos de los últimos 12 meses y dos expedientes de clientes.</p>
-<p>Si desea agregar información o tiene alguna duda, puede responder a este correo o escribirnos a <a href="mailto:contacto@certusconsultores.com.mx">contacto@certusconsultores.com.mx</a> o a <a href="mailto:contacto@espinosasalazarabogados.com">contacto@espinosasalazarabogados.com</a>.</p>
+<p>Si desea adelantarse, agregar información o tiene alguna duda, puede responder a este correo, escribirnos a <a href="mailto:contacto@certusconsultores.com.mx">contacto@certusconsultores.com.mx</a> o a <a href="mailto:contacto@espinosasalazarabogados.com">contacto@espinosasalazarabogados.com</a>, o llamar al Lic. Alfredo Espinosa Corona al <a href="tel:+529995753129">999 575 3129</a> (celular).</p>
+<p>La información que nos proporcione será utilizada exclusivamente con el propósito de brindar por nuestra parte el servicio que se nos requiere y bajo los lineamientos de las Leyes Mexicanas de la materia. Puede consultar nuestro Aviso de Privacidad en la siguiente liga: <a href="https://certusconsultores.com.mx/aviso-de-privacidad/">Aviso de Privacidad</a>.</p>
 <p>Atentamente,</p>
 <p><strong>Certus Consultores</strong><br>Cumplimiento normativo PLD/FT<br>Mérida, Yucatán · Tel. 999 163 1363</p>
-<p><strong>Espinosa-Salazar Abogados Corporativos</strong><br>Tel. 999 575 3129</p>
+<p><strong>Espinosa-Salazar Abogados Corporativos</strong><br>Lic. Alfredo Espinosa Corona · Cel. 999 575 3129</p>
 </div>
 <div style="background:#f3f1ed;padding:12px 24px;font-size:11px;color:#5a5650;line-height:1.5;">
 <p style="margin:0 0 6px;"><strong>Aviso de privacidad.</strong> ${esc(constanciaPrivacidad(pv)) || 'Su información se trata conforme a nuestro aviso de privacidad.'} Responsable: José Luis Naranjo Bobadilla (Certus Consultores). Consulte el aviso integral en <a href="https://certusconsultores.com.mx/aviso-de-privacidad/">certusconsultores.com.mx/aviso-de-privacidad</a>. Puede ejercer sus derechos ARCO o revocar su consentimiento en contacto@certusconsultores.com.mx.</p>
@@ -244,9 +245,11 @@ function generarPDF(datos) {
     { ol: r.pendientes.slice(), fontSize: 10, margin: [0, 6, 0, 10] },
     {
       table: { widths: ['*'], body: [[{ text: [
-        { text: 'Agende su sesión: ', bold: true, color: '#F1C38C' },
-        agenda ? { text: agenda, link: agenda, color: '#FFFFFF', decoration: 'underline' } : 'responda este correo y le propondremos horarios',
-        ' · contacto@certusconsultores.com.mx · +52 999 163 1363'
+        { text: 'Siguiente paso: ', bold: true, color: '#F1C38C' },
+        'en los próximos días nos comunicaremos con usted para conocer su opinión sobre este resultado y acordar la fecha de su sesión. ',
+        agenda ? { text: ['Si lo prefiere, agéndela aquí: ', { text: agenda, link: agenda, decoration: 'underline' }, '. '] } : '',
+        { text: '\nSi desea adelantarse: ', bold: true, color: '#F1C38C' },
+        'contacto@certusconsultores.com.mx · Tel. 999 163 1363 · Lic. Alfredo Espinosa Corona, cel. 999 575 3129'
       ], color: '#FFFFFF', fontSize: 10, margin: [8, 8, 8, 8] }]] },
       layout: { hLineWidth: () => 0, vLineWidth: () => 0, fillColor: () => NAVY }
     },
