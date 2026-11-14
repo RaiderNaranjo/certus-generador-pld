@@ -12,7 +12,7 @@ from docxlib import (q, Par, leer_par, escribir_par, normalizar_parrafo_complejo
                      tabla_simple, instalar_estilos, LOG, log, W)
 import canon
 
-SRC, OUT = sys.argv[1], sys.argv[2]
+SRC, OUT = (sys.argv[1], sys.argv[2]) if __name__ == '__main__' else (None, None)
 CH_RE = re.compile(r'^(Capítulo|CAPÍTULO)\s+(\d+)[\.:]?\s*(.*)$')
 AN_RE = re.compile(r'^Anexo\s+([A-D])[\.:]\s*(.*)$')
 SUB_RE = re.compile(r'^(\d+\.\d+(?:\.\d+)?)\s+\S')
@@ -152,6 +152,9 @@ regla(r'desarrollado por Certus Consultores a través', 'desarrollado por Certus
 regla(r'Certus Consultores, a través del Programa Certus PLD, notificará', 'Certus Consultores y Espinosa-Salazar Abogados Corporativos, a través del Programa Certus PLD, notificarán')
 regla(r'con el apoyo de Certus Consultores(?! y)', 'con el apoyo de Certus Consultores y Espinosa-Salazar Abogados Corporativos')
 regla(r'edición octubre 2026', 'edición noviembre 2026')
+regla(r'con las ponderaciones del Documento D6 \(A ×1\.5; B ×1\.25; C ×1\.0; D ×1\.0\)', 'con igual ponderación para los cuatro elementos')
+regla(r'^×1\.(?:5|25)$', '×1.0')
+regla(r'puntuación (?:ponderada )?de (?:6 a 9 puntos|9\.00 a 15\.00)', 'puntuación de 7 a 11 puntos')
 regla(r'https?://ppld\.sat\.gob\.mx/?', 'https://sppld.sat.gob.mx/pld/index.html')
 regla(r'(?<=\S)  +(?=\S)', ' ')
 regla(r'\(\s+', '(')
@@ -372,13 +375,13 @@ PORTADA = {
                  v2='[Nombre del Corredor Público Titular]', banner2='Correduría: [Denominación de la Correduría]',
                  aprobo='Corredor Público Titular'),
 }
-NOTA = ('NOTA DE EDICIÓN CERTUS — se elimina al personalizar. Este Manual contiene variantes para cliente persona '
+NOTA = ('NOTA DE EDICIÓN CERTUS — se elimina al personalizar. Este documento contiene variantes para cliente persona '
         'física, marcadas [PF: …] con sombreado verde, y para cliente persona moral, marcadas [PM: …] con sombreado '
         'amarillo. El texto sin marca aplica a ambos. Para personalizar, ejecute la macro ResolverComoPF o '
         'ResolverComoPM, o elimine a mano las variantes que no apliquen y retire las etiquetas.')
 PIE = 'CERTUS CONSULTORES · ESPINOSA-SALAZAR ABOGADOS CORPORATIVOS  |  Certus PLD  |  Mérida, Yucatán  |  999 163 1363 · 999 575 3129'
 
-def portada(ctx):
+def portada(ctx, codigo='D5', titulo='Manual de Políticas Internas PLD/FT', indice=None):
     k = ctx.kit; d = PORTADA[k]; info = canon.KITS[k]
     # Banda de título
     tbl = etree.fromstring(
@@ -390,7 +393,7 @@ def portada(ctx):
         '<w:right w:w="120" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid><w:gridCol w:w="9500"/></w:tblGrid>'
         '<w:tr><w:tc><w:tcPr><w:tcW w:w="9500" w:type="dxa"/></w:tcPr></w:tc></w:tr></w:tbl>' % W)
     tc = tbl.find('.//' + q('w:tc'))
-    l1 = Par.from_text('**CERTUS PLD   │   D5%s Manual de Políticas Internas PLD/FT — %s**' % (info['suf'], info['variante']))
+    l1 = Par.from_text('**CERTUS PLD   │   %s%s %s — %s**' % (codigo, info['suf'], titulo, info['variante']))
     l2 = Par.from_text('%s   │   Variante: %s — %s' % (d['banner2'], info['variante'], info['frac']))
     e1 = escribir_par(l1, 'CertusTabla'); e2 = escribir_par(l2, 'CertusTabla')
     for r in e1.iter(q('w:r')):
@@ -429,7 +432,7 @@ def portada(ctx):
         par.props = [frozenset({'rs:NotaCertus'})] * len(par.chars)
         par.mark = 'NotaCertus'
         ctx.body.append(escribir_par(par, 'CertusTexto'))
-    ctx.body.append(escribir_par(Par.from_text(canon.indice(k)), 'CertusIndice'))
+    ctx.body.append(escribir_par(Par.from_text(indice or canon.indice(k)), 'CertusIndice'))
 
 GLOSARIO_COMUN = [
     ('Aviso', 'el que debe presentarse en términos de los artículos 17 y 18, fracción VI, de la Ley (art. 3, fr. II, RCG).'),
@@ -743,6 +746,8 @@ def guardar(ctx):
     for el in list(body):
         if el is not sect:
             body.remove(el)
+    from docxlib import espaciar_tras_tablas
+    espaciar_tras_tablas(ctx.body)
     for el in ctx.body:
         sect.addprevious(el)
     cp = doc.core_properties

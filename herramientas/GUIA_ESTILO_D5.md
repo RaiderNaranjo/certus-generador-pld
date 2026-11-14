@@ -74,6 +74,13 @@ Fuera de los cuatro manuales: los capítulos de Sanciones y de Calendario del Ac
 - Los marcadores del generador quedan fuera de las variantes. Cuando un dato aplica solo a una persona moral, el campo pasa a una tabla (por ejemplo, el directivo que aprueba operaciones con PEP de Riesgo alto, en el Anexo C).
 - Marcadores de portada: PROF `[Nombre]`/`[RFC]`; INM `[EMPRESA]`/`[RFC_EMPRESA]`; NOT `[Denominación completa]`/`[Nombre del Notario Titular]`; COR `[Denominación de la Correduría]`/`[Nombre del Corredor Público Titular]`; todos `[VERSION] — [Fecha de adopción]`.
 
-## 6. Cómo se regeneran
+## 6. Documentos distintos del Manual (D6 en adelante)
+
+- Misma portada, estilos, citas, términos y marca que el D5.
+- Divisiones en `Sección I: Título (ancla legal)` en lugar de capítulos; los subtítulos internos van en negritas.
+- **D6 — Metodología EBR (homologado):** 4 elementos (art. 10 Septies 1 RCG) y 7 indicadores: A1 tipo de acto, A2 monto, A3 origen y destino de los recursos, B1 perfil, B2 PEP, C1 geografía, D1 canal. Cada indicador vale de 1 a 3; la puntuación es la **suma de 7 a 21** y todos los elementos pesan igual. Bajo: 7–11; medio: 12–16; alto: 17–21. Secciones I a XI idénticas en los cuatro kits; solo cambian las descripciones de A1, A2, A3, C1, D1, el indicador FT/LD del elemento A y la nota sobre los Avisos.
+- La evaluación del sujeto obligado (D5, sección 5.1) usa los mismos cuatro elementos, con igual ponderación.
+
+## 7. Cómo se regeneran
 
 `herramientas/homologacion_d5/` contiene `canon.py` (estructura, títulos, índice, Anexo A), `docxlib.py` (estilos y normalización) y `build_d5.py` (especificación por kit). Para cambiar un título o una regla de redacción, se edita `canon.py` o `build_d5.py`, y los cuatro manuales se regeneran juntos.

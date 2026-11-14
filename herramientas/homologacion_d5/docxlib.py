@@ -402,3 +402,19 @@ def tabla_simple(filas, anchos, encabezado=True):
             tcw = etree.SubElement(tcpr, q('w:tcW')); tcw.set(q('w:w'), str(anchos[k])); tcw.set(q('w:type'), 'dxa')
             tc.append(escribir_par(Par.from_text(celda), 'CertusTabla'))
     return tbl
+
+def espaciar_tras_tablas(elementos):
+    """Espacio antes del párrafo que sigue a una tabla (y después de la tabla anterior a un párrafo)."""
+    for i, el in enumerate(elementos[:-1]):
+        sig = elementos[i + 1]
+        if el.tag == q('w:tbl') and sig.tag == q('w:p'):
+            ppr = sig.find(q('w:pPr'))
+            if ppr is None:
+                ppr = etree.SubElement(sig, q('w:pPr')); sig.insert(0, ppr)
+            sp = ppr.find(q('w:spacing'))
+            if sp is None:
+                sp = etree.Element(q('w:spacing'))
+                ps = ppr.find(q('w:pStyle'))
+                (ps.addnext(sp) if ps is not None else ppr.insert(0, sp))
+            if not sp.get(q('w:before')):
+                sp.set(q('w:before'), '140')
