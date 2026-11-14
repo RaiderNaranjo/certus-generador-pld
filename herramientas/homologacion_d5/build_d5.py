@@ -160,6 +160,7 @@ regla(r'https?://ppld\.sat\.gob\.mx/?', 'https://sppld.sat.gob.mx/pld/index.html
 regla(r'(?<=\S)  +(?=\S)', ' ')
 regla(r'\(\s+', '(')
 regla(r'\bFracción (XI|XII|V)\b(?= del)', r'fracción \1')
+regla(r'Informe de Auditoría PLD', 'Dictamen de Auditoría PLD/FT')
 
 def aplicar_globales(par):
     for pat, repl in GLOBAL:

@@ -133,3 +133,29 @@ def _degradar(self, n, titulo):
     nuevo = escribir_par(Par.from_text(titulo), 'CertusSeccion')
     el.addprevious(nuevo); self.body.remove(el)
 Doc.degradar = _degradar
+
+def _restilar_variantes(self):
+    """Aplica el estilo VariantePF/VariantePM a todo texto [PF: …] / [PM: …] del documento, según su etiqueta.
+    Corrige variantes escritas como texto plano o heredadas con el estilo equivocado."""
+    import re as _re
+    def f(par):
+        t = ''.join(par.chars); cambio = False
+        for m in _re.finditer(r'\[(PF|PM): [^\[\]]*\]', t):
+            st = 'rs:VariantePF' if m.group(1) == 'PF' else 'rs:VariantePM'
+            for i in range(m.start(), m.end()):
+                limpio = frozenset(x for x in par.props[i] if x not in ('rs:VariantePF', 'rs:VariantePM'))
+                nuevo = frozenset(limpio | {st})
+                if nuevo != par.props[i]:
+                    par.props[i] = nuevo; cambio = True
+        # caracteres fuera de cualquier variante no deben conservar estilo de variante
+        dentro = set()
+        for m in _re.finditer(r'\[(PF|PM): [^\[\]]*\]', t):
+            dentro.update(range(m.start(), m.end()))
+        for i in range(len(t)):
+            if i not in dentro and any(x in par.props[i] for x in ('rs:VariantePF', 'rs:VariantePM')):
+                # párrafo completo de variante (marca de párrafo) se conserva si todo el texto es variante
+                if not t.strip().startswith('[P'):
+                    par.props[i] = frozenset(x for x in par.props[i] if x not in ('rs:VariantePF', 'rs:VariantePM')); cambio = True
+        return par if cambio else None
+    return self.parrafos(f)
+Doc.restilar_variantes = _restilar_variantes

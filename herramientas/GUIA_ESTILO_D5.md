@@ -87,6 +87,10 @@ Fuera de los cuatro manuales: los capítulos de Sanciones y de Calendario del Ac
 - **D11B — Casos Prácticos (homologado):** un caso por módulo (COR conserva dos del Módulo 5); cada uno con Situación, Preguntas de análisis y recuadro de Respuesta modelo. NOT, COR y PROF reciben el caso del Módulo 7.
 - **D11C — Evaluación (homologado):** 11 preguntas de opción múltiple y 1 abierta, 24 puntos, aprobatorio 17. Clave de respuestas en página aparte (NOT y COR no tenían clave).
 - **D11D — Declaración de Selección de Personal:** ya era igual en los cuatro kits; solo cambia quién valida.
+- **D12 — Control de Avisos e Informes:** seis secciones (obligación y umbrales, fecha del acto por art. 24 Bis, bitácora, control mensual e informe en ceros, Avisos de 24 horas, presentación y verificación). Acumulación según art. 19 RCG: aplica a V, V Bis, XV y a XII-A a) y d); no a XII-B ni a XI.
+- **D13 — Dictamen de Auditoría:** ocho secciones con la estructura del art. 47 RCG y los cinco resultados del art. 48 (C, CM, CP, NC, NA); acciones con proyección de multa (art. 49) y seguimiento del dictamen anterior.
+- **D0:** siete secciones (objeto, incumplimientos, marco, riesgo del sector, art. 55, recomendación, acuse). **D1:** seis (antecedentes, sujeción, alcance, identificación, régimen sancionatorio, conclusión); se conservan D1-PROF 2.2 y IV y D1-COR 2.3. **D3:** sección V común (arts. 5 Bis a 9 y 37 RCG). **D4:** 20 rubros comunes con la misma numeración más los sectoriales (INM 21, NOT 22, COR 22, PROF 21).
+- **PROF** recibe D0A, CARTA y PT, adaptados desde NOT/COR. `restructura.py` reorganiza plantillas existentes (renombrar, insertar, degradar secciones, corregir texto y restituir el estilo de las variantes con `restilar_variantes`).
 - La evaluación del sujeto obligado (D5, sección 5.1) usa los mismos cuatro elementos, con igual ponderación.
 
 ## 7. Cómo se regeneran
