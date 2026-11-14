@@ -354,14 +354,14 @@ async function generarCronograma(empresa, rfc, opts = {}) {
       fecha: fw(1),
       objetivo: opts.tipoPersona === 'PF'
         ? 'Partir del diagnóstico de brechas para establecer la base legal y formalizar la asunción personal del cumplimiento'
-        : 'Partir del diagnóstico de brechas para establecer la base legal y designar al Representante de Cumplimiento',
+        : 'Partir del diagnóstico de brechas para establecer la base legal y designar al Representante Encargado de Cumplimiento',
       docs: [
         { id: 'D4', nombre: 'Gap Analysis PLD', descripcion: 'Punto de partida: análisis de brechas normativas de la empresa' },
         { id: 'D0', nombre: 'Carta de Recomendaciones Urgentes', descripcion: 'Comunicado inicial, elaborado con los hallazgos del Gap Analysis, con recomendaciones críticas de cumplimiento' },
         { id: 'D1', nombre: 'Dictamen de Sujeción Normativa', descripcion: 'Evaluación legal de la obligación LFPIORPI' },
         opts.tipoPersona === 'PF'
           ? { id: 'D2', nombre: 'Constancia de Asunción Personal', descripcion: (opts.tipo === 'profesionistas' ? 'El profesional' : 'La persona física titular') + ' asume personal y directamente el cumplimiento (art. 20 LFPIORPI)' }
-          : { id: 'D2', nombre: 'Acta de Designación del RC', descripcion: 'Documento de formalización del Representante de Cumplimiento' },
+          : { id: 'D2', nombre: 'Acta de Designación del Representante Encargado de Cumplimiento', descripcion: 'Designación y aceptación en el Portal (art. 20 de la Ley; art. 10 RCG)' },
         { id: 'D3', nombre: 'Expediente de Registro SPPLD', descripcion: 'Documentos para registrar ante el SAT' },
       ]
     },
@@ -383,6 +383,7 @@ async function generarCronograma(empresa, rfc, opts = {}) {
         { id: 'D8', nombre: 'Política de PEPs', descripcion: 'Procedimientos para identificar y dar seguimiento reforzado a Personas Políticamente Expuestas' },
         { id: 'D9', nombre: 'Reporte de Operación Inusual (ROI)', descripcion: 'Señales de alerta, análisis y Aviso de 24 horas' },
         { id: 'D10', nombre: 'Política de Resguardo Documental', descripcion: 'Estándares de conservación de documentos' },
+        ...(opts.tipo === 'inmobiliaria' || !opts.tipo ? [{ id: 'D14', nombre: 'Manual del Beneficiario Controlador', descripcion: 'Identificación del Beneficiario Controlador de personas morales y fideicomisos' }] : []),
       ]
     },
     {
@@ -393,7 +394,8 @@ async function generarCronograma(empresa, rfc, opts = {}) {
         { id: 'D11',  nombre: 'Programa Anual de Capacitación', descripcion: 'Plan de capacitación del personal' },
         { id: 'D11B', nombre: 'Casos Prácticos Certus PLD', descripcion: 'Ejemplos de aplicación práctica' },
         { id: 'D11C', nombre: 'Evaluación de Comprensión', descripcion: 'Prueba de conocimiento del personal' },
-        { id: 'D12',  nombre: 'Control de Avisos SAT', descripcion: 'Sistema de control de reportes mensuales' },
+        { id: 'D11D', nombre: 'Declaración de Selección de Personal', descripcion: 'Declaración firmada del personal (art. 39 Bis 2 RCG)' },
+        { id: 'D12',  nombre: 'Control de Avisos e Informes', descripcion: 'Umbrales, bitácora, control mensual y Avisos de 24 horas' },
       ]
     },
     {
