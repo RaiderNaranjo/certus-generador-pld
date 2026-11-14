@@ -380,7 +380,7 @@ async function generarCronograma(empresa, rfc, opts = {}) {
       objetivo: 'Implementar procesos de identificación, monitoreo y reporte',
       docs: [
         { id: 'D7', nombre: 'Expediente KYC', descripcion: 'Procesos de identificación de clientes' },
-        { id: 'D8', nombre: 'Política de PEPs', descripcion: 'Procedimientos para detectar Personas Expuestas Políticamente' },
+        { id: 'D8', nombre: 'Política de PEPs', descripcion: 'Procedimientos para identificar y dar seguimiento reforzado a Personas Políticamente Expuestas' },
         { id: 'D9', nombre: 'Reporte de Operación Inusual (ROI)', descripcion: 'Protocolo de alertas y reportes al SAT' },
         { id: 'D10', nombre: 'Política de Resguardo Documental', descripcion: 'Estándares de conservación de documentos' },
       ]
