@@ -100,6 +100,11 @@ def construir(kit):
            'primer año de operaciones, el periodo va desde el inicio de la Actividad Vulnerable hasta el 31 de diciembre del año '
            'siguiente (art. 43 RCG). Si este formato se usa para la revisión de cierre de la implementación del Programa, se '
            'trata de un servicio contractual de verificación y no del dictamen del art. 42 RCG.')
+    p(ctx, '**Quién emite el dictamen.** Si el Riesgo del auditado es bajo o medio, puede firmarlo su área de auditoría o '
+           'control interno, independiente %s (art. 44 RCG); Certus PLD puede acompañarla con la metodología, estos papeles '
+           'de trabajo, una revisión de calidad y la capacitación anual que exige el art. 44, sin firmar el dictamen. Si el '
+           'Riesgo es alto, o si el auditado lo elige, lo emite una persona auditora externa independiente con certificación '
+           'vigente de la UIF que no le haya prestado servicios con conflicto de interés durante el periodo (art. 45 RCG).' % (('de ' + d['rec']) if d['rec'].startswith('[') else d['rec'].replace('el ', 'del ', 1)))
     # I
     sec(ctx, 'I')
     ficha(ctx, [('Auditado:', d['auditado']), ('Periodo auditado:', '01/01/[aaaa] al 31/12/[aaaa]'),
