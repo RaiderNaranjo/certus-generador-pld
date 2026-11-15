@@ -96,3 +96,10 @@ Fuera de los cuatro manuales: los capítulos de Sanciones y de Calendario del Ac
 ## 7. Cómo se regeneran
 
 `herramientas/homologacion_d5/` contiene `canon.py` (estructura, títulos, índice, Anexo A), `docxlib.py` (estilos y normalización) y `build_d5.py` (especificación por kit); `build_d6.py`, `build_d7.py`, `build_d8.py`, `build_d9.py`, `build_d10.py`, `build_d11.py`, `build_d11b.py` y `build_d11c.py` generan esos documentos y `reskin.py` aplica el formato homologado a los demás. Para cambiar un título o una regla de redacción, se edita `canon.py` o `build_d5.py`, y los cuatro manuales se regeneran juntos.
+
+## Esquema de auditoría PLD (aprobado nov-2026)
+- **Riesgo bajo o medio (EBR):** el dictamen anual (art. 47 RCG) lo emite el área interna de auditoría o control del sujeto obligado (art. 44). Certus PLD **acompaña** con metodología, papeles de trabajo, formato D13, revisión de calidad y capacitación anual; **no firma** el dictamen.
+- **Riesgo alto o por elección del cliente:** auditor externo independiente con certificación UIF y sin conflicto de interés en el periodo auditado (art. 45, inciso d). Puede ser un auditor aliado; Certus solo cuando no prestó servicios al cliente en ese periodo.
+- **C3:** "revisión anual preparatoria" (no es dictamen).
+- **Revisión de cierre:** servicio contractual; Certus actúa como **revisor**, nunca como "auditor externo".
+- Primer periodo auditable: 2028 (Transitorio Octavo).
